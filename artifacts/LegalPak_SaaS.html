@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LegalPak — Pakistani Legal SaaS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f8f7f4;
+    --surface: #ffffff;
+    --ink: #1a1a2e;
+    --muted: #5c5c6e;
+    --accent: #0f3460;
+    --accent-soft: #e8eef6;
+    --border: #e2e0d8;
+    --danger: #b91c1c;
+    --success: #15803d;
+    --warning: #b45309;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(15, 52, 96, 0.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  header {
+    background: var(--ink);
+    color: #fff;
+    padding: 1.1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 3px solid var(--accent);
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .logo span { color: #94a3b8; font-weight: 400; font-size: 0.85rem; font-family: Inter; }
+  .header-right { font-size: 0.8rem; color: #94a3b8; }
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: calc(100vh - 64px);
+  }
+  nav {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 1.5rem 0;
+    overflow-y: auto;
+  }
+  nav h3 {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 0 1.25rem 0.6rem;
+    font-weight: 600;
+  }
+  .nav-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.7rem 1.25rem;
+    border: none;
+    background: transparent;
+    font-size: 0.9rem;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+  }
+  .nav-item:hover { background: var(--accent-soft); }
+  .nav-item.active {
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  main { padding: 2rem; overflow-y: auto; }
+  .panel {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.75rem;
+    margin-bottom: 0.35rem;
+  }
+  .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 1.5rem; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.92rem;
+    font-family: inherit;
+    background: #fafaf8;
+    transition: border 0.15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #fff;
+  }
+  textarea { min-height: 90px; resize: vertical; }
+  .field { margin-bottom: 1rem; }
+  .btn-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.25rem; }
+  button.primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button.primary:hover { background: #0a2540; }
+  button.secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+    padding: 0.7rem 1.3rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  button.secondary:hover { background: var(--accent-soft); }
+  button.ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 0.65rem 1.1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .preview-box {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2.5rem 3rem;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 11.5pt;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    max-height: 70vh;
+    overflow-y: auto;
+    color: #111;
+  }
+  .preview-box h2 { text-align: center; font-size: 14pt; margin-bottom: 1.2rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .badge-law { background: #dbeafe; color: #1e40af; }
+  .badge-stamp { background: #fef3c7; color: #92400e; }
+  .badge-reg { background: #dcfce7; color: #166534; }
+  .red-flags { margin-top: 1rem; }
+  .flag {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.6rem;
+    font-size: 0.88rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+  .flag.high { background: #fef2f2; border-left: 4px solid var(--danger); }
+  .flag.med { background: #fffbeb; border-left: 4px solid var(--warning); }
+  .flag.low { background: #f0fdf4; border-left: 4px solid var(--success); }
+  .flag strong { display: block; margin-bottom: 0.15rem; }
+  .qa-box {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+  .qa-input { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+  .qa-input input { flex: 1; }
+  .qa-answer {
+    margin-top: 0.85rem;
+    padding: 0.85rem;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  .info-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .hidden { display: none !important; }
+  .tabs-secondary {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+  }
+  .tab-sec {
+    padding: 0.45rem 1rem;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .tab-sec.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  footer {
+    text-align: center;
+    padding: 1.5rem;
+    font-size: 0.78rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    nav { display: flex; overflow-x: auto; padding: 0.75rem; gap: 0.3rem; }
+    .nav-item { white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; }
+    .nav-item.active { border-bottom-color: var(--accent); }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .preview-box { padding: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">LegalPak <span>SaaS · Pakistan</span></div>
+  <div class="header-right">Contract Act 1872 · Companies Act 2017 · Stamp Act</div>
+</header>
+
+<div class="layout">
+  <nav id="sidebar">
+    <h3>Contract Types</h3>
+    <button class="nav-item active" data-type="service">Service Agreement</button>
+    <button class="nav-item" data-type="employment">Employment Contract</button>
+    <button class="nav-item" data-type="rent">Rent / Lease Agreement</button>
+    <button class="nav-item" data-type="sale">Agreement to Sell (Bayana)</button>
+    <button class="nav-item" data-type="nda">Non-Disclosure Agreement</button>
+    <button class="nav-item" data-type="partnership">Partnership Deed</button>
+    <button class="nav-item" data-type="jv">Joint Venture Agreement</button>
+    <button class="nav-item" data-type="loan">Loan Agreement</button>
+    <button class="nav-item" data-type="poa">Power of Attorney</button>
+    <button class="nav-item" data-type="shareholders">Shareholders Agreement</button>
+    <h3 style="margin-top:1.5rem">Tools</h3>
+    <button class="nav-item" data-type="analyzer">Red-Flag Analyzer</button>
+    <button class="nav-item" data-type="guide">Document Guide</button>
+  </nav>
+
+  <main>
+    <!-- DYNAMIC FORM PANEL -->
+    <div id="form-panel" class="panel">
+      <div class="info-bar" id="info-bar"></div>
+      <h1 id="form-title">Service Agreement</h1>
+      <p class="subtitle" id="form-sub">Professional services contract under the Contract Act, 1872</p>
+
+      <div id="form-fields"></div>
+
+      <div class="btn-row">
+        <button class="primary" onclick="generateContract()">Generate Contract</button>
+        <button class="secondary" onclick="loadSample()">Load Sample Data</button>
+        <button class="ghost" onclick="clearForm()">Clear</button>
+      </div>
+    </div>
+
+    <!-- PREVIEW + ANALYSIS -->
+    <div id="output-panel" class="panel hidden">
+      <div class="tabs-secondary">
+        <button class="tab-sec active" data-tab="preview">Document Preview</button>
+        <button class="tab-sec" data-tab="flags">Red-Flag Analysis</button>
+        <button class="tab-sec" data-tab="qa">Ask about this Contract</button>
+      </div>
+
+      <div id="tab-preview">
+        <div class="btn-row" style="margin-bottom:1rem;margin-top:0">
+          <button class="primary" onclick="downloadTxt()">Download .txt</button>
+          <button class="secondary" onclick="window.print()">Print / PDF</button>
+          <button class="ghost" onclick="copyToClipboard()">Copy</button>
+        </div>
+        <div class="preview-box" id="preview"></div>
+      </div>
+
+      <div id="tab-flags" class="hidden">
+        <div class="red-flags" id="flags-container"></div>
+      </div>
+
+      <div id="tab-qa" class="hidden">
+        <div class="qa-box">
+          <p style="font-size:0.9rem;color:var(--muted)">Ask anything about the generated contract (governing law, stamp duty, enforceability, missing clauses, etc.)</p>
+          <div class="qa-input">
+            <input type="text" id="qa-question" placeholder="e.g. Is this agreement required to be registered?">
+            <button class="primary" onclick="answerQuestion()">Ask</button>
+          </div>
+          <div class="qa-answer hidden" id="qa-answer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALYZER STANDALONE -->
+    <div id="analyzer-panel" class="panel hidden">
+      <h1>Red-Flag Contract Analyzer</h1>
+      <p class="subtitle">Paste any contract text. The system checks against core requirements of the Contract Act, 1872 and common Pakistani commercial practice.</p>
+      <textarea id="analyze-text" style="min-height:220px" placeholder="Paste contract text here..."></textarea>
+      <div class="btn-row">
+        <button class="primary" onclick="runAnalyzer()">Analyze</button>
+      </div>
+      <div class="red-flags" id="standalone-flags"></div>
+    </div>
+
+    <!-- GUIDE -->
+    <div id="guide-panel" class="panel hidden">
+      <h1>When & Where — Document Guide (Pakistan)</h1>
+      <p class="subtitle">Practical roadmap of major documents, stamp duty triggers and registration requirements.</p>
+      <div id="guide-content"></div>
+    </div>
+  </main>
+</div>
+
+<footer>
+  LegalPak SaaS · Built for Pakistani law · Contract Act 1872 · Companies Act 2017 · Stamp Act 1899 (as amended) · Not a substitute for licensed legal advice
+</footer>
+
+<script>
+// ===================== DATA & TEMPLATES =====================
+const TYPES = {
+  service: {
+    title: "Service Agreement",
+    sub: "Professional / Consultancy services under the Contract Act, 1872",
+    badges: ["Contract Act 1872", "Usually non-judicial stamp", "Registration rare"],
+    fields: [
+      {id:"partyA", label:"Service Provider (Name / Company)", type:"text"},
+      {id:"cnicA", label:"CNIC / NTN of Provider", type:"text"},
+      {id:"addrA", label:"Address of Provider", type:"text"},
+      {id:"partyB", label:"Client (Name / Company)", type:"text"},
+      {id:"cnicB", label:"CNIC / NTN of Client", type:"text"},
+      {id:"addrB", label:"Address of Client", type:"text"},
+      {id:"city", label:"Place of Execution", type:"text"},
+      {id:"date", label:"Date of Agreement", type:"date"},
+      {id:"scope", label:"Scope of Services", type:"textarea"},
+      {id:"fee", label:"Professional Fee (PKR)", type:"text"},
+      {id:"payment", label:"Payment Terms", type:"text"},
+      {id:"duration", label:"Duration / Term", type:"text"},
+      {id:"jurisdiction", label:"Jurisdiction (City)", type:"text"}
+    ],
+    sample: {
+      partyA: "Ahmad Consultants (Pvt) Ltd", cnicA: "1234567-8", addrA: "Plot 12, Blue Area, Islamabad",
+      partyB: "TechNova Solutions", cnicB: "8765432-1", addrB: "Office 4, Gulberg III, Lahore",
+      city: "Islamabad", date: "2026-03-15", scope: "Provision of digital transformation consultancy, process mapping, and implementation roadmap for the Client's ERP system.",
+      fee: "1,850,000", payment: "40% on signing, 40% on interim delivery, 20% on final acceptance",
+      duration: "Six (6) months from the Effective Date", jurisdiction: "Islamabad"
+    }
+  },
+  employment: {
+    title: "Employment Contract",
+    sub: "Written employment agreement (required for workers under provincial labour laws)",
+    badges: ["Contract Act 1872", "Provincial Labour Laws", "Stamp paper recommended"],
+    fields: [
+      {id:"employer", label:"Employer Name", type:"text"},
+      {id:"empAddr", label:"Employer Address", type:"text"},
+      {id:"employee", label:"Employee Full Name", type:"text"},
+      {id:"cnic", label:"Employee CNIC", type:"text"},
+      {id:"empAddress", label:"Employee Address", type:"text"},
+      {id:"position", label:"Designation / Position", type:"text"},
+      {id:"salary", label:"Gross Monthly Salary (PKR)", type:"text"},
+      {id:"probation", label:"Probation Period", type:"text"},
+      {id:"startDate", label:"Commencement Date", type:"date"},
+      {id:"city", label:"Place of Employment", type:"text"},
+      {id:"notice", label:"Notice Period", type:"text"}
+    ],
+    sample: {
+      employer: "Horizon Manufacturing (Pvt) Ltd", empAddr: "Industrial Area, Faisalabad",
+      employee: "Muhammad Bilal Khan", cnic: "33100-1234567-1", empAddress: "House 45, Madina Town, Faisalabad",
+      position: "Production Supervisor", salary: "95,000", probation: "Three (3) months",
+      startDate: "2026-04-01", city: "Faisalabad", notice: "One (1) month"
+    }
+  },
+  rent: {
+    title: "Rent / Lease Agreement",
+    sub: "Residential or commercial tenancy (Stamp duty & registration rules vary by province & term)",
+    badges: ["Transfer of Property Act", "Provincial Stamp Acts", "Registration if >1 year"],
+    fields: [
+      {id:"landlord", label:"Landlord Full Name", type:"text"},
+      {id:"lCnic", label:"Landlord CNIC", type:"text"},
+      {id:"lAddr", label:"Landlord Address", type:"text"},
+      {id:"tenant", label:"Tenant Full Name", type:"text"},
+      {id:"tCnic", label:"Tenant CNIC", type:"text"},
+      {id:"tAddr", label:"Tenant Address", type:"text"},
+      {id:"property", label:"Property Description & Address", type:"textarea"},
+      {id:"rent", label:"Monthly Rent (PKR)", type:"text"},
+      {id:"deposit", label:"Security Deposit (PKR)", type:"text"},
+      {id:"term", label:"Lease Term", type:"text"},
+      {id:"start", label:"Commencement Date", type:"date"},
+      {id:"city", label:"City", type:"text"}
+    ],
+    sample: {
+      landlord: "Mrs. Fatima Zahra", lCnic: "35202-9876543-2", lAddr: "House 12, DHA Phase 5, Lahore",
+      tenant: "Ali Raza", tCnic: "35201-1122334-5", tAddr: "Currently residing at Gulberg, Lahore",
+      property: "House No. 78, Street 9, Phase 6, DHA, Lahore measuring 10 Marla",
+      rent: "185,000", deposit: "370,000", term: "Eleven (11) months", start: "2026-05-01", city: "Lahore"
+    }
+  },
+  sale: {
+    title: "Agreement to Sell (Bayana)",
+    sub: "Immovable property — must be carefully drafted; registration of subsequent sale deed is mandatory",
+    badges: ["Transfer of Property Act 1882", "Registration Act 1908", "Stamp duty on conveyance"],
+    fields: [
+      {id:"seller", label:"Seller Full Name", type:"text"},
+      {id:"sCnic", label:"Seller CNIC", type:"text"},
+      {id:"sAddr", label:"Seller Address", type:"text"},
+      {id:"buyer", label:"Buyer Full Name", type:"text"},
+      {id:"bCnic", label:"Buyer CNIC", type:"text"},
+      {id:"bAddr", label:"Buyer Address", type:"text"},
+      {id:"property", label:"Property Full Description", type:"textarea"},
+      {id:"price", label:"Total Sale Consideration (PKR)", type:"text"},
+      {id:"earnest", label:"Earnest Money / Bayana (PKR)", type:"text"},
+      {id:"balance", label:"Balance Payment Terms", type:"text"},
+      {id:"deadline", label:"Deadline for Sale Deed", type:"date"},
+      {id:"city", label:"City of Execution", type:"text"}
+    ],
+    sample: {
+      seller: "Imran Haider", sCnic: "37405-5566778-9", sAddr: "House 22, F-10/2, Islamabad",
+      buyer: "Sanaullah Khan", bCnic: "61101-9988776-5", bAddr: "Apartment 4B, Bahria Town, Islamabad",
+      property: "Plot No. 45, Street 12, Sector F-11/3, Islamabad measuring 500 sq. yards, bounded as per title documents",
+      price: "45,000,000", earnest: "5,000,000", balance: "Balance PKR 40,000,000 to be paid at the time of execution and registration of the Sale Deed",
+      deadline: "2026-08-15", city: "Islamabad"
+    }
+  },
+  nda: {
+    title: "Non-Disclosure Agreement",
+    sub: "Mutual or one-way confidentiality — common in tech, M&A and employment contexts",
+    badges: ["Contract Act 1872", "Usually non-judicial stamp", "No registration required"],
+    fields: [
+      {id:"partyA", label:"Disclosing Party", type:"text"},
+      {id:"cnicA", label:"CNIC / NTN", type:"text"},
+      {id:"partyB", label:"Receiving Party", type:"text"},
+      {id:"cnicB", label:"CNIC / NTN", type:"text"},
+      {id:"purpose", label:"Purpose of Disclosure", type:"textarea"},
+      {id:"duration", label:"Confidentiality Period", type:"text"},
+      {id:"city", label:"Place of Execution", type:"text"},
+      {id:"date", label:"Date", type:"date"}
+    ],
+    sample: {
+      partyA: "NovaTech (Pvt) Ltd", cnicA: "1234567-1", partyB: "CodeCraft Solutions", cnicB: "7654321-2",
+      purpose: "Evaluation of a potential software development partnership and sharing of proprietary algorithms and client data",
+      duration: "Three (3) years from the date of this Agreement", city: "Karachi", date: "2026-02-20"
+    }
+  },
+  partnership: {
+    title: "Partnership Deed",
+    sub: "Governed by the Partnership Act, 1932 — registration with Registrar of Firms is strongly recommended",
+    badges: ["Partnership Act 1932", "Stamp duty applicable", "Registration with Registrar of Firms"],
+    fields: [
+      {id:"p1", label:"Partner 1 Full Name", type:"text"},
+      {id:"c1", label:"Partner 1 CNIC", type:"text"},
+      {id:"p2", label:"Partner 2 Full Name", type:"text"},
+      {id:"c2", label:"Partner 2 CNIC", type:"text"},
+      {id:"firm", label:"Firm Name", type:"text"},
+      {id:"business", label:"Nature of Business", type:"text"},
+      {id:"capital", label:"Total Capital (PKR)", type:"text"},
+      {id:"share1", label:"Profit Share Partner 1 (%)", type:"text"},
+      {id:"share2", label:"Profit Share Partner 2 (%)", type:"text"},
+      {id:"city", label:"Principal Place of Business", type:"text"},
+      {id:"date", label:"Date of Deed", type:"date"}
+    ],
+    sample: {
+      p1: "Hassan Ali", c1: "42101-3344556-7", p2: "Usman Farooq", c2: "42101-7788990-1",
+      firm: "Ali & Farooq Traders", business: "Import and wholesale of industrial chemicals",
+      capital: "10,000,000", share1: "60", share2: "40", city: "Karachi", date: "2026-01-10"
+    }
+  },
+  jv: {
+    title: "Joint Venture Agreement",
+    sub: "Contractual JV or incorporated JV — Companies Act 2017 considerations apply if a company is formed",
+    badges: ["Contract Act 1872", "Companies Act 2017 (if entity formed)", "Stamp duty"],
+    fields: [
+      {id:"partyA", label:"Party A Name", type:"text"},
+      {id:"partyB", label:"Party B Name", type:"text"},
+      {id:"purpose", label:"JV Purpose / Project", type:"textarea"},
+      {id:"contribA", label:"Contribution of Party A", type:"text"},
+      {id:"contribB", label:"Contribution of Party B", type:"text"},
+      {id:"profit", label:"Profit / Loss Sharing", type:"text"},
+      {id:"duration", label:"Duration of JV", type:"text"},
+      {id:"city", label:"Place of Execution", type:"text"},
+      {id:"date", label:"Date", type:"date"}
+    ],
+    sample: {
+      partyA: "BuildRight Construction (Pvt) Ltd", partyB: "GreenEnergy Holdings",
+      purpose: "Development and operation of a 50 MW solar power project in Punjab under the relevant Alternative Energy framework",
+      contribA: "Engineering, procurement and construction expertise + PKR 200 million equity",
+      contribB: "Land, project financing arrangement and offtake relationships",
+      profit: "55% Party A / 45% Party B", duration: "Twenty-five (25) years from Commercial Operation Date",
+      city: "Lahore", date: "2026-06-01"
+    }
+  },
+  loan: {
+    title: "Loan Agreement",
+    sub: "Inter-party loan — consider stamp duty and, for larger amounts, registration or promissory note formalities",
+    badges: ["Contract Act 1872", "Stamp duty on agreement / promissory note", "Interest must be lawful"],
+    fields: [
+      {id:"lender", label:"Lender Name", type:"text"},
+      {id:"lCnic", label:"Lender CNIC / NTN", type:"text"},
+      {id:"borrower", label:"Borrower Name", type:"text"},
+      {id:"bCnic", label:"Borrower CNIC / NTN", type:"text"},
+      {id:"amount", label:"Principal Amount (PKR)", type:"text"},
+      {id:"interest", label:"Interest Rate (per annum)", type:"text"},
+      {id:"term", label:"Repayment Term", type:"text"},
+      {id:"security", label:"Security (if any)", type:"text"},
+      {id:"city", label:"Place of Execution", type:"text"},
+      {id:"date", label:"Date", type:"date"}
+    ],
+    sample: {
+      lender: "Kashif Mehmood", lCnic: "35202-1122334-5", borrower: "Naveed Iqbal", bCnic: "35202-5566778-9",
+      amount: "2,500,000", interest: "14%", term: "Twenty-four (24) equal monthly instalments",
+      security: "Post-dated cheques + personal guarantee of the Borrower", city: "Lahore", date: "2026-03-01"
+    }
+  },
+  poa: {
+    title: "Power of Attorney",
+    sub: "General or Special — registration is mandatory when dealing with immovable property",
+    badges: ["Powers of Attorney Act 1882", "Registration Act 1908 (if property)", "Stamp duty"],
+    fields: [
+      {id:"principal", label:"Principal (Donor) Full Name", type:"text"},
+      {id:"pCnic", label:"Principal CNIC", type:"text"},
+      {id:"pAddr", label:"Principal Address", type:"text"},
+      {id:"attorney", label:"Attorney Full Name", type:"text"},
+      {id:"aCnic", label:"Attorney CNIC", type:"text"},
+      {id:"aAddr", label:"Attorney Address", type:"text"},
+      {id:"powers", label:"Powers Granted (describe)", type:"textarea"},
+      {id:"type", label:"Type", type:"select", options:["Special Power of Attorney","General Power of Attorney"]},
+      {id:"city", label:"Place of Execution", type:"text"},
+      {id:"date", label:"Date", type:"date"}
+    ],
+    sample: {
+      principal: "Asma Bibi", pCnic: "37405-2233445-6", pAddr: "Currently residing in Dubai, UAE",
+      attorney: "Tariq Mahmood (Brother)", aCnic: "37405-6677889-0", aAddr: "House 9, G-9/2, Islamabad",
+      powers: "To sell, transfer, mortgage or otherwise deal with Plot No. 112, Sector G-13/4, Islamabad, including signing of all sale deeds, appearing before sub-registrar, and receiving sale consideration.",
+      type: "Special Power of Attorney", city: "Islamabad", date: "2026-02-10"
+    }
+  },
+  shareholders: {
+    title: "Shareholders Agreement",
+    sub: "Private company — complements the Articles of Association under the Companies Act, 2017",
+    badges: ["Companies Act 2017", "Contract Act 1872", "SECP filings may be relevant"],
+    fields: [
+      {id:"company", label:"Company Name", type:"text"},
+      {id:"sh1", label:"Shareholder 1 Name", type:"text"},
+      {id:"pct1", label:"Shareholding % (SH1)", type:"text"},
+      {id:"sh2", label:"Shareholder 2 Name", type:"text"},
+      {id:"pct2", label:"Shareholding % (SH2)", type:"text"},
+      {id:"board", label:"Board Composition", type:"text"},
+      {id:"drag", label:"Drag / Tag Along", type:"text"},
+      {id:"city", label:"Place of Execution", type:"text"},
+      {id:"date", label:"Date", type:"date"}
+    ],
+    sample: {
+      company: "Aether Technologies (Pvt) Ltd", sh1: "Founder A — Ahmed Raza", pct1: "60",
+      sh2: "Investor B — Horizon Ventures", pct2: "40",
+      board: "Three directors: two nominated by Founder A, one by Investor B",
+      drag: "Standard drag-along and tag-along rights on a change of control transaction",
+      city: "Karachi", date: "2026-04-15"
+    }
+  }
+};
+
+let currentType = "service";
+let lastGenerated = "";
+
+// ===================== UI RENDERING =====================
+function renderForm(type) {
+  currentType = type;
+  const t = TYPES[type];
+  if (!t) return;
+
+  document.getElementById("form-panel").classList.remove("hidden");
+  document.getElementById("output-panel").classList.add("hidden");
+  document.getElementById("analyzer-panel").classList.add("hidden");
+  document.getElementById("guide-panel").classList.add("hidden");
+
+  document.getElementById("form-title").textContent = t.title;
+  document.getElementById("form-sub").textContent = t.sub;
+
+  const bar = document.getElementById("info-bar");
+  bar.innerHTML = t.badges.map(b => {
+    let cls = "badge-law";
+    if (b.toLowerCase().includes("stamp")) cls = "badge-stamp";
+    if (b.toLowerCase().includes("regist")) cls = "badge-reg";
+    return `<span class="badge ${cls}">${b}</span>`;
+  }).join("");
+
+  const container = document.getElementById("form-fields");
+  let html = '<div class="grid-2">';
+  t.fields.forEach((f, i) => {
+    if (i > 0 && i % 2 === 0) html += '</div><div class="grid-2">';
+    html += `<div class="field"><label for="${f.id}">${f.label}</label>`;
+    if (f.type === "textarea") {
+      html += `<textarea id="${f.id}"></textarea>`;
+    } else if (f.type === "select") {
+      html += `<select id="${f.id}">${f.options.map(o => `<option>${o}</option>`).join("")}</select>`;
+    } else {
+      html += `<input type="${f.type}" id="${f.id}">`;
+    }
+    html += `</div>`;
+  });
+  html += "</div>";
+  container.innerHTML = html;
+}
+
+// ===================== NAVIGATION =====================
+document.querySelectorAll(".nav-item").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const type = btn.dataset.type;
+    if (type === "analyzer") {
+      document.getElementById("form-panel").classList.add("hidden");
+      document.getElementById("output-panel").classList.add("hidden");
+      document.getElementById("guide-panel").classList.add("hidden");
+      document.getElementById("analyzer-panel").classList.remove("hidden");
+    } else if (type === "guide") {
+      document.getElementById("form-panel").classList.add("hidden");
+      document.getElementById("output-panel").classList.add("hidden");
+      document.getElementById("analyzer-panel").classList.add("hidden");
+      document.getElementById("guide-panel").classList.remove("hidden");
+      renderGuide();
+    } else {
+      renderForm(type);
+    }
+  });
+});
+
+// Secondary tabs
+document.querySelectorAll(".tab-sec").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-sec").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    ["preview","flags","qa"].forEach(t => {
+      document.getElementById("tab-" + t).classList.toggle("hidden", btn.dataset.tab !== t);
+    });
+  });
+});
+
+// ===================== GENERATION =====================
+function getVal(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : "";
+}
+
+function generateContract() {
+  const t = TYPES[currentType];
+  let text = "";
+
+  if (currentType === "service") {
+    text = `SERVICE AGREEMENT
+
+This Service Agreement (the "Agreement") is made at ${getVal("city")} on this ${formatDate(getVal("date"))}
+
+BETWEEN
+
+${getVal("partyA")}, having CNIC/NTN ${getVal("cnicA")}, with its office at ${getVal("addrA")} (hereinafter referred to as the "Service Provider", which expression shall, unless repugnant to the context, include its successors and permitted assigns) of the ONE PART;
+
+AND
+
+${getVal("partyB")}, having CNIC/NTN ${getVal("cnicB")}, with its office at ${getVal("addrB")} (hereinafter referred to as the "Client", which expression shall, unless repugnant to the context, include its successors and permitted assigns) of the OTHER PART.
+
+(The Service Provider and the Client are hereinafter collectively referred to as the "Parties" and individually as a "Party".)
+
+WHEREAS:
+A. The Service Provider represents that it has the necessary expertise, resources and capacity to provide the services described herein.
+B. The Client desires to engage the Service Provider for the provision of such services on the terms and conditions set out in this Agreement.
+
+NOW, THEREFORE, in consideration of the mutual covenants and agreements herein contained, and for other good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the Parties agree as follows:
+
+1. APPOINTMENT AND SCOPE OF SERVICES
+1.1 The Client hereby engages the Service Provider, and the Service Provider accepts such engagement, to provide the following services (the "Services"):
+${getVal("scope")}
+1.2 The Service Provider shall perform the Services with due professional skill, care and diligence consistent with industry standards in Pakistan.
+
+2. TERM
+This Agreement shall come into force on the date first written above and shall continue for ${getVal("duration")}, unless earlier terminated in accordance with the provisions hereof.
+
+3. FEES AND PAYMENT
+3.1 In consideration of the Services, the Client shall pay the Service Provider a total professional fee of PKR ${getVal("fee")} (Rupees ${numberToWords(getVal("fee"))} Only).
+3.2 Payment shall be made as follows: ${getVal("payment")}.
+3.3 All amounts are exclusive of applicable taxes, which shall be borne by the Client as required under Pakistani law.
+
+4. OBLIGATIONS OF THE PARTIES
+4.1 The Service Provider shall: (a) devote such time and resources as are reasonably necessary; (b) maintain confidentiality of Client information; (c) comply with all applicable laws of Pakistan.
+4.2 The Client shall: (a) provide timely access to information and personnel; (b) make payments in accordance with this Agreement.
+
+5. CONFIDENTIALITY
+Each Party undertakes to keep confidential all confidential information received from the other Party and not to disclose the same to any third party without prior written consent, except as required by law.
+
+6. INTELLECTUAL PROPERTY
+All intellectual property created specifically for the Client under this Agreement shall vest in the Client upon full payment of the Fees. Pre-existing IP of the Service Provider remains its property.
+
+7. TERMINATION
+Either Party may terminate this Agreement by giving thirty (30) days' prior written notice. Termination shall be without prejudice to accrued rights. In case of material breach, the non-breaching Party may terminate with immediate effect after written notice if the breach remains uncured for fifteen (15) days.
+
+8. LIMITATION OF LIABILITY
+Except in cases of fraud, wilful misconduct or gross negligence, the total liability of the Service Provider under this Agreement shall not exceed the total Fees paid by the Client.
+
+9. FORCE MAJEURE
+Neither Party shall be liable for any failure or delay in performance due to circumstances beyond its reasonable control, including but not limited to acts of God, war, terrorism, epidemic, government action or natural disaster.
+
+10. GOVERNING LAW AND DISPUTE RESOLUTION
+10.1 This Agreement shall be governed by and construed in accordance with the laws of the Islamic Republic of Pakistan.
+10.2 Any dispute arising out of or in connection with this Agreement shall first be attempted to be resolved amicably. Failing amicable resolution within thirty (30) days, the dispute shall be referred to the competent courts at ${getVal("jurisdiction")}, Pakistan.
+
+11. GENERAL
+11.1 This Agreement constitutes the entire agreement between the Parties and supersedes all prior negotiations and understandings.
+11.2 No amendment shall be valid unless made in writing and signed by both Parties.
+11.3 If any provision is held invalid, the remaining provisions shall continue in full force.
+11.4 This Agreement may be executed in counterparts.
+
+IN WITNESS WHEREOF, the Parties have executed this Agreement on the date first above written.
+
+_______________________________          _______________________________
+For and on behalf of                     For and on behalf of
+${getVal("partyA")}                     ${getVal("partyB")}
+Name:                                    Name:
+Designation:                             Designation:
+Date:                                    Date:
+
+WITNESSES:
+1. ___________________________           2. ___________________________
+   Name & CNIC                              Name & CNIC
+
+NOTE: This Agreement should be executed on non-judicial stamp paper of appropriate value as per the applicable provincial Stamp Act. Parties are advised to obtain independent legal advice.`;
+  }
+
+  else if (currentType === "employment") {
+    text = `EMPLOYMENT CONTRACT
+
+This Employment Contract is made at ${getVal("city")} on this ${formatDate(getVal("startDate"))}
+
+BETWEEN
+
+${getVal("employer")}, having its registered/principal office at ${getVal("empAddr")} (hereinafter referred to as the "Employer") of the ONE PART;
+
+AND
+
+${getVal("employee")}, son/daughter of __________, holding CNIC No. ${getVal("cnic")}, residing at ${getVal("empAddress")} (hereinafter referred to as the "Employee") of the OTHER PART.
+
+WHEREAS the Employer desires to employ the Employee and the Employee has agreed to serve the Employer on the terms and conditions hereinafter appearing.
+
+NOW THIS AGREEMENT WITNESSETH AS FOLLOWS:
+
+1. APPOINTMENT AND POSITION
+The Employer hereby appoints the Employee to the position of ${getVal("position")} with effect from ${formatDate(getVal("startDate"))}. The Employee shall perform such duties as are customarily associated with the said position and such other duties as may be reasonably assigned by the Employer.
+
+2. PLACE OF WORK
+The Employee's principal place of work shall be ${getVal("city")}, or such other location as the Employer may reasonably require.
+
+3. PROBATION
+The Employee shall be on probation for a period of ${getVal("probation")}. During probation, either Party may terminate the employment by giving seven (7) days' notice or salary in lieu thereof. Upon successful completion, the employment shall be confirmed in writing.
+
+4. REMUNERATION
+The Employee shall be entitled to a gross monthly salary of PKR ${getVal("salary")} (Rupees ${numberToWords(getVal("salary"))} Only), payable in accordance with the Employer's payroll practices. Applicable taxes shall be deducted at source as required by law.
+
+5. WORKING HOURS AND LEAVE
+The Employee shall observe the working hours and leave policy as notified by the Employer from time to time, subject to applicable provincial labour laws.
+
+6. CONFIDENTIALITY AND NON-DISCLOSURE
+The Employee shall not, during or after the employment, disclose any confidential information of the Employer to any third party, except as required in the proper performance of duties or by law.
+
+7. TERMINATION
+After confirmation, either Party may terminate this Contract by giving ${getVal("notice")} written notice or payment of salary in lieu of notice. The Employer may terminate forthwith in case of serious misconduct, fraud, or material breach after giving the Employee an opportunity to be heard where required by law.
+
+8. RETURN OF PROPERTY
+Upon termination, the Employee shall immediately return all property, documents and data belonging to the Employer.
+
+9. GOVERNING LAW
+This Contract shall be governed by the laws of Pakistan, including the Contract Act, 1872 and applicable provincial labour legislation. Courts at ${getVal("city")} shall have jurisdiction.
+
+IN WITNESS WHEREOF the Parties have signed this Contract on the date first above written.
+
+_______________________________          _______________________________
+For the Employer                         Employee
+Name & Designation:                      ${getVal("employee")}
+                                         CNIC: ${getVal("cnic")}
+
+WITNESSES:
+1. ___________________________           2. ___________________________
+
+NOTE: Employment contracts for "workers" must be in writing under applicable provincial laws. Stamp paper of appropriate value is recommended. This is a template only.`;
+  }
+
+  else if (currentType === "rent") {
+    text = `RENT AGREEMENT
+
+This Rent Agreement is made at ${getVal("city")} on this ${formatDate(getVal("start"))}
+
+BETWEEN
+
+${getVal("landlord")}, holding CNIC No. ${getVal("lCnic")}, residing at ${getVal("lAddr")} (hereinafter referred to as the "Landlord") of the ONE PART;
+
+AND
+
+${getVal("tenant")}, holding CNIC No. ${getVal("tCnic")}, residing at ${getVal("tAddr")} (hereinafter referred to as the "Tenant") of the OTHER PART.
+
+WHEREAS the Landlord is the lawful owner / has lawful authority over the property described below and has agreed to let the same to the Tenant on the terms hereinafter appearing.
+
+NOW THIS AGREEMENT WITNESSETH AS UNDER:
+
+1. PROPERTY
+The Landlord hereby lets and the Tenant takes on rent the following property (the "Premises"):
+${getVal("property")}
+
+2. TERM
+The tenancy shall be for a period of ${getVal("term")} commencing from ${formatDate(getVal("start"))}.
+
+3. RENT
+The monthly rent shall be PKR ${getVal("rent")} (Rupees ${numberToWords(getVal("rent"))} Only), payable in advance on or before the 5th day of each calendar month.
+
+4. SECURITY DEPOSIT
+The Tenant has paid / shall pay a security deposit of PKR ${getVal("deposit")}, refundable upon expiry or earlier termination, subject to deduction of any dues or damages (fair wear and tear excepted).
+
+5. TENANT'S COVENANTS
+The Tenant shall: (a) pay rent punctually; (b) use the Premises for residential / lawful purposes only; (c) not sub-let without prior written consent; (d) maintain the Premises in good condition; (e) permit the Landlord reasonable inspection upon notice.
+
+6. LANDLORD'S COVENANTS
+The Landlord shall ensure peaceful possession and carry out structural repairs (unless caused by the Tenant).
+
+7. TERMINATION
+Either Party may terminate by giving one (1) month's prior written notice. In case of breach, the non-breaching Party may terminate after fifteen (15) days' notice if the breach remains uncured.
+
+8. GOVERNING LAW
+This Agreement shall be governed by the laws of Pakistan. Courts at ${getVal("city")} shall have jurisdiction.
+
+IN WITNESS WHEREOF the Parties have set their hands on the date first above written.
+
+_______________________________          _______________________________
+Landlord                                 Tenant
+${getVal("landlord")}                    ${getVal("tenant")}
+CNIC: ${getVal("lCnic")}                 CNIC: ${getVal("tCnic")}
+
+WITNESSES:
+1. ___________________________           2. ___________________________
+
+IMPORTANT: 
+- For leases exceeding one year, registration under the Registration Act, 1908 is generally required.
+- Stamp duty is payable as per the applicable provincial Stamp Act (rates vary; often a percentage of annual rent or fixed amounts).
+- Always verify current provincial rates and use e-stamp where mandated.`;
+  }
+
+  else if (currentType === "sale") {
+    text = `AGREEMENT TO SELL
+(Bayana / Agreement for Sale of Immovable Property)
+
+This Agreement to Sell is made at ${getVal("city")} on this ${formatDate(getVal("deadline"))}
+
+BETWEEN
+
+${getVal("seller")}, holding CNIC No. ${getVal("sCnic")}, residing at ${getVal("sAddr")} (hereinafter referred to as the "Seller", which expression shall include his/her heirs, successors and assigns) of the ONE PART;
+
+AND
+
+${getVal("buyer")}, holding CNIC No. ${getVal("bCnic")}, residing at ${getVal("bAddr")} (hereinafter referred to as the "Buyer", which expression shall include his/her heirs, successors and assigns) of the OTHER PART.
+
+WHEREAS the Seller is the absolute and lawful owner of the property described below and has agreed to sell the same to the Buyer on the terms and conditions hereinafter appearing.
+
+NOW THIS AGREEMENT WITNESSETH AS FOLLOWS:
+
+1. PROPERTY
+The Seller agrees to sell and the Buyer agrees to purchase the following immovable property (the "Property"):
+${getVal("property")}
+
+2. SALE CONSIDERATION
+The total sale consideration is PKR ${getVal("price")} (Rupees ${numberToWords(getVal("price"))} Only).
+
+3. PAYMENT SCHEDULE
+3.1 The Buyer has paid / shall pay a sum of PKR ${getVal("earnest")} as earnest money / bayana, the receipt of which the Seller hereby acknowledges.
+3.2 The balance consideration shall be paid as follows: ${getVal("balance")}.
+
+4. TIME FOR COMPLETION
+The Parties shall execute and get registered the Sale Deed on or before ${formatDate(getVal("deadline"))}, provided the Buyer has paid the full balance consideration and the Seller has fulfilled all conditions precedent (clear title, vacant possession, etc.).
+
+5. SELLER'S OBLIGATIONS
+The Seller shall: (a) make out a marketable title free from all encumbrances; (b) deliver all original title documents; (c) hand over vacant and peaceful possession at the time of registration of the Sale Deed; (d) execute all necessary documents and appear before the Sub-Registrar.
+
+6. BUYER'S OBLIGATIONS
+The Buyer shall pay the balance consideration on time and bear the stamp duty, registration fee and transfer charges as mutually agreed or as customary.
+
+7. DEFAULT
+7.1 If the Buyer defaults in payment, the Seller may forfeit the earnest money after notice and may also claim damages.
+7.2 If the Seller defaults in completing the sale, the Buyer may seek specific performance and/or damages, or recovery of the earnest money with interest.
+
+8. GOVERNING LAW AND JURISDICTION
+This Agreement shall be governed by the laws of Pakistan, including the Transfer of Property Act, 1882 and the Contract Act, 1872. The courts at ${getVal("city")} shall have exclusive jurisdiction.
+
+IN WITNESS WHEREOF the Parties have signed this Agreement on the date first above written.
+
+_______________________________          _______________________________
+Seller                                   Buyer
+${getVal("seller")}                      ${getVal("buyer")}
+CNIC: ${getVal("sCnic")}                 CNIC: ${getVal("bCnic")}
+
+WITNESSES:
+1. ___________________________           2. ___________________________
+   Name, CNIC & Address                     Name, CNIC & Address
+
+CRITICAL NOTES:
+- This is an Agreement to Sell, not a conveyance. Ownership passes only upon execution and registration of the Sale Deed.
+- Stamp duty and registration of the eventual Sale Deed are mandatory for immovable property.
+- Ensure the property is free from litigation and that the Seller has clear title (obtain fard, aks shajra, etc. as applicable).
+- Independent legal due diligence is strongly recommended.`;
+  }
+
+  else if (currentType === "nda") {
+    text = `NON-DISCLOSURE AGREEMENT
+
+This Non-Disclosure Agreement (the "Agreement") is made at ${getVal("city")} on this ${formatDate(getVal("date"))}
+
+BETWEEN
+
+${getVal("partyA")}, having CNIC/NTN ${getVal("cnicA")} (the "Disclosing Party");
+
+AND
+
+${getVal("partyB")}, having CNIC/NTN ${getVal("cnicB")} (the "Receiving Party").
+
+(Collectively the "Parties")
+
+WHEREAS the Parties wish to explore ${getVal("purpose")} and in connection therewith the Disclosing Party may disclose certain confidential and proprietary information.
+
+NOW, THEREFORE, the Parties agree as follows:
+
+1. DEFINITION OF CONFIDENTIAL INFORMATION
+"Confidential Information" means all non-public information, whether technical, commercial, financial or otherwise, disclosed by the Disclosing Party to the Receiving Party, in any form, that is designated as confidential or that a reasonable person would understand to be confidential.
+
+2. OBLIGATIONS
+The Receiving Party shall: (a) use the Confidential Information solely for the Purpose; (b) protect it with at least the same degree of care as it uses for its own confidential information (and in no event less than reasonable care); (c) not disclose it to any third party without prior written consent, except to employees/advisors with a need to know who are bound by confidentiality obligations no less restrictive.
+
+3. EXCLUSIONS
+Confidential Information does not include information that: (a) is or becomes public other than by breach; (b) was already known to the Receiving Party without restriction; (c) is independently developed; or (d) is rightfully received from a third party without restriction.
+
+4. TERM
+The obligations of confidentiality shall survive for ${getVal("duration")}.
+
+5. RETURN OR DESTRUCTION
+Upon request or termination of discussions, the Receiving Party shall promptly return or destroy all Confidential Information and certify the same in writing.
+
+6. NO LICENSE
+Nothing in this Agreement grants any license under any intellectual property rights.
+
+7. GOVERNING LAW
+This Agreement shall be governed by the laws of the Islamic Republic of Pakistan. Courts at ${getVal("city")} shall have jurisdiction.
+
+IN WITNESS WHEREOF the Parties have executed this Agreement.
+
+_______________________________          _______________________________
+Disclosing Party                         Receiving Party
+
+WITNESSES:
+1. ___________________________           2. ___________________________`;
+  }
+
+  else if (currentType === "partnership") {
+    text = `PARTNERSHIP DEED
+
+This Deed of Partnership is made at ${getVal("city")} on this ${formatDate(getVal("date"))}
+
+BETWEEN
+
+1. ${getVal("p1")}, holding CNIC No. ${getVal("c1")} (hereinafter "Partner No. 1");
+2. ${getVal("p2")}, holding CNIC No. ${getVal("c2")} (hereinafter "Partner No. 2");
+
+(Collectively the "Partners")
+
+WHEREAS the Partners have agreed to carry on business in partnership under the name and style of "${getVal("firm")}" on the terms hereinafter appearing.
+
+NOW THIS DEED WITNESSETH AS FOLLOWS:
+
+1. NAME AND BUSINESS
+The name of the firm shall be "${getVal("firm")}". The business of the partnership shall be ${getVal("business")} and such other business as the Partners may from time to time agree.
+
+2. PRINCIPAL PLACE OF BUSINESS
+The principal place of business shall be at ${getVal("city")}, or such other place as the Partners may decide.
+
+3. COMMENCEMENT AND DURATION
+The partnership shall be deemed to have commenced on the date of this Deed and shall continue until terminated in accordance with this Deed or the Partnership Act, 1932.
+
+4. CAPITAL
+The initial capital of the firm shall be PKR ${getVal("capital")}. The Partners shall contribute capital in the proportion of their profit-sharing ratios unless otherwise agreed in writing.
+
+5. PROFIT AND LOSS SHARING
+Profits and losses of the firm shall be shared as follows:
+- Partner No. 1: ${getVal("share1")}%
+- Partner No. 2: ${getVal("share2")}%
+
+6. MANAGEMENT
+All Partners shall be entitled to participate in the management. Major decisions (including borrowing beyond agreed limits, admission of new partners, sale of substantial assets) shall require unanimous consent.
+
+7. BANK ACCOUNT
+The firm shall maintain a bank account. Cheques and instruments shall be signed as decided by the Partners.
+
+8. ACCOUNTS
+Proper books of account shall be maintained. Accounts shall be prepared annually and shall be open to inspection by any Partner.
+
+9. RETIREMENT / DISSOLUTION
+A Partner may retire by giving three (3) months' prior written notice. The partnership may be dissolved by mutual consent or in accordance with the Partnership Act, 1932.
+
+10. GOVERNING LAW
+This Deed shall be governed by the Partnership Act, 1932 and the Contract Act, 1872. Courts at ${getVal("city")} shall have jurisdiction.
+
+IN WITNESS WHEREOF the Partners have executed this Deed.
+
+_______________________________          _______________________________
+Partner No. 1                            Partner No. 2
+${getVal("p1")}                          ${getVal("p2")}
+
+WITNESSES:
+1. ___________________________           2. ___________________________
+
+NOTE: Registration of the firm with the Registrar of Firms under the Partnership Act, 1932 is highly recommended for legal advantages (including the right to sue in the firm name). Stamp duty is payable as per the applicable provincial schedule.`;
+  }
+
+  else if (currentType === "jv") {
+    text = `JOINT VENTURE AGREEMENT
+
+This Joint Venture Agreement is made at ${getVal("city")} on this ${formatDate(getVal("date"))}
+
+BETWEEN
+
+${getVal("partyA")} (hereinafter "Party A");
+
+AND
+
+${getVal("partyB")} (hereinafter "Party B").
+
+(Collectively the "Parties")
+
+WHEREAS the Parties desire to collaborate for the following purpose:
+${getVal("purpose")}
+
+NOW, THEREFORE, the Parties agree as follows:
+
+1. FORMATION AND PURPOSE
+The Parties hereby form a contractual joint venture (the "JV") for the Purpose stated above. Nothing in this Agreement shall be construed as creating a partnership for tax purposes unless the Parties expressly agree to incorporate a separate legal entity.
+
+2. CONTRIBUTIONS
+- Party A shall contribute: ${getVal("contribA")}
+- Party B shall contribute: ${getVal("contribB")}
+
+3. PROFIT AND LOSS
+Profits and losses of the JV shall be shared as follows: ${getVal("profit")}.
+
+4. MANAGEMENT
+A Management Committee comprising equal representatives of each Party shall oversee the JV. Day-to-day operations may be delegated as agreed in writing.
+
+5. TERM
+The JV shall continue for ${getVal("duration")}, unless earlier terminated by mutual written consent or in accordance with this Agreement.
+
+6. CONFIDENTIALITY AND NON-COMPETE
+Each Party shall maintain confidentiality of JV information and shall not, during the term, compete with the JV in the defined field without prior written consent (subject to the reasonableness requirements under Section 27 of the Contract Act, 1872).
+
+7. EXIT AND TERMINATION
+Upon termination, assets and liabilities shall be dealt with in accordance with the profit-sharing ratio after settlement of all obligations.
+
+8. GOVERNING LAW
+This Agreement shall be governed by the laws of Pakistan. Disputes shall be resolved amicably; failing which, by arbitration under the Arbitration Act, 1940 (or applicable law) or by the courts at ${getVal("city")}.
+
+IN WITNESS WHEREOF the Parties have executed this Agreement.
+
+_______________________________          _______________________________
+For Party A                              For Party B
+
+WITNESSES:
+1. ___________________________           2. ___________________________`;
+  }
+
+  else if (currentType === "loan") {
+    text = `LOAN AGREEMENT
+
+This Loan Agreement is made at ${getVal("city")} on this ${formatDate(getVal("date"))}
+
+BETWEEN
+
+${getVal("lender")}, holding CNIC/NTN ${getVal("lCnic")} (the "Lender");
+
+AND
+
+${getVal("borrower")}, holding CNIC/NTN ${getVal("bCnic")} (the "Borrower").
+
+WHEREAS the Lender has agreed to advance a loan to the Borrower on the terms hereinafter appearing.
+
+NOW THIS AGREEMENT WITNESSETH AS FOLLOWS:
+
+1. LOAN AMOUNT
+The Lender agrees to advance and the Borrower agrees to borrow the principal sum of PKR ${getVal("amount")} (Rupees ${numberToWords(getVal("amount"))} Only) (the "Loan").
+
+2. INTEREST
+The Loan shall carry interest at the rate of ${getVal("interest")} per annum, calculated on the outstanding principal.
+
+3. REPAYMENT
+The Borrower shall repay the Loan together with interest as follows: ${getVal("term")}.
+
+4. SECURITY
+The Loan is secured by: ${getVal("security") || "None (unsecured)"}.
+
+5. EVENTS OF DEFAULT
+The occurrence of any of the following shall constitute an Event of Default: (a) failure to pay any amount when due; (b) breach of any material term; (c) insolvency or bankruptcy of the Borrower; (d) any representation proving to be materially false.
+
+6. CONSEQUENCES OF DEFAULT
+Upon an Event of Default, the Lender may declare the entire outstanding amount immediately due and payable and may enforce any security.
+
+7. GOVERNING LAW
+This Agreement shall be governed by the laws of Pakistan, including the Contract Act, 1872. Courts at ${getVal("city")} shall have jurisdiction.
+
+IN WITNESS WHEREOF the Parties have signed this Agreement.
+
+_______________________________          _______________________________
+Lender                                   Borrower
+
+WITNESSES:
+1. ___________________________           2. ___________________________
+
+NOTE: Consider executing a separate promissory note. Stamp duty may apply to the agreement and/or the promissory note under the applicable Stamp Act. Interest must not be usurious under applicable law.`;
+  }
+
+  else if (currentType === "poa") {
+    text = `POWER OF ATTORNEY
+(${getVal("type")})
+
+KNOW ALL MEN BY THESE PRESENTS that I, ${getVal("principal")}, holding CNIC No. ${getVal("pCnic")}, residing at ${getVal("pAddr")} (the "Principal"), do hereby nominate, constitute and appoint ${getVal("attorney")}, holding CNIC No. ${getVal("aCnic")}, residing at ${getVal("aAddr")} (the "Attorney"), as my true and lawful attorney to do and execute the following acts, deeds and things in my name and on my behalf:
+
+POWERS GRANTED:
+${getVal("powers")}
+
+I hereby ratify and confirm all that the Attorney shall lawfully do or cause to be done by virtue of these presents.
+
+This Power of Attorney shall remain in force until revoked by me in writing or until the purpose is fully accomplished.
+
+IN WITNESS WHEREOF I have set my hand at ${getVal("city")} on this ${formatDate(getVal("date"))}.
+
+_______________________________
+${getVal("principal")}
+(Principal)
+CNIC: ${getVal("pCnic")}
+
+WITNESSES:
+1. ___________________________           2. ___________________________
+   Name, CNIC & Address                     Name, CNIC & Address
+
+IMPORTANT LEGAL NOTES:
+- When the Power of Attorney authorises dealing with immovable property, registration under the Registration Act, 1908 is generally mandatory.
+- Stamp duty is payable as per the applicable provincial Stamp Act.
+- For Principals residing abroad, additional attestation / consular formalities and, in some cases, court permission may be required.
+- Always verify the Attorney's identity and keep a copy of this instrument.`;
+  }
+
+  else if (currentType === "shareholders") {
+    text = `SHAREHOLDERS AGREEMENT
+
+This Shareholders Agreement is made at ${getVal("city")} on this ${formatDate(getVal("date"))}
+
+BETWEEN
+
+The persons whose names and shareholdings are set out below (the "Shareholders"):
+
+1. ${getVal("sh1")} — ${getVal("pct1")}%
+2. ${getVal("sh2")} — ${getVal("pct2")}%
+
+AND
+
+${getVal("company")}, a private limited company incorporated under the Companies Act, 2017 (the "Company").
+
+WHEREAS the Shareholders are the registered holders of the shares in the capital of the Company and wish to regulate their relationship inter se and with the Company.
+
+NOW, THEREFORE, the Parties agree as follows:
+
+1. SHARE CAPITAL AND SHAREHOLDING
+The shareholding percentages stated above shall be maintained except as varied in accordance with this Agreement or applicable law.
+
+2. BOARD OF DIRECTORS
+The Board shall be constituted as follows: ${getVal("board")}.
+
+3. RESERVED MATTERS
+Certain matters (including alteration of share capital, sale of substantial assets, related-party transactions above a threshold, and winding-up) shall require the affirmative consent of Shareholders holding at least 75% of the voting shares.
+
+4. TRANSFER OF SHARES
+No Shareholder shall transfer shares except in accordance with the pre-emption rights, and the drag-along / tag-along provisions set out herein: ${getVal("drag")}.
+
+5. CONFIDENTIALITY AND NON-COMPETE
+Each Shareholder undertakes confidentiality obligations and a reasonable non-compete during the period of shareholding and for a limited period thereafter (subject to Section 27 of the Contract Act, 1872).
+
+6. DEADLOCK RESOLUTION
+In the event of a Board or Shareholder deadlock, the Parties shall attempt mediation; failing which, a buy-sell mechanism or referral to arbitration may be invoked.
+
+7. GOVERNING LAW
+This Agreement shall be governed by the Companies Act, 2017 and the Contract Act, 1872. Disputes shall be subject to the jurisdiction of the courts at ${getVal("city")} / arbitration as agreed.
+
+IN WITNESS WHEREOF the Parties have executed this Agreement.
+
+_______________________________          _______________________________
+Shareholder 1                            Shareholder 2
+
+For the Company:
+_______________________________
+Authorised Signatory
+
+WITNESSES:
+1. ___________________________           2. ___________________________
+
+NOTE: This Agreement should be consistent with the Articles of Association. Certain actions may require SECP filings under the Companies Act, 2017. Independent legal review is essential.`;
+  }
+
+  lastGenerated = text;
+  document.getElementById("preview").textContent = text;
+  document.getElementById("output-panel").classList.remove("hidden");
+  document.getElementById("tab-preview").classList.remove("hidden");
+  document.getElementById("tab-flags").classList.add("hidden");
+  document.getElementById("tab-qa").classList.add("hidden");
+  document.querySelectorAll(".tab-sec").forEach(b => b.classList.remove("active"));
+  document.querySelector('.tab-sec[data-tab="preview"]').classList.add("active");
+
+  runRedFlags(text);
+  window.scrollTo({ top: document.getElementById("output-panel").offsetTop - 80, behavior: "smooth" });
+}
+
+// ===================== RED FLAG ENGINE =====================
+function runRedFlags(text) {
+  const flags = [];
+  const lower = text.toLowerCase();
+
+  // Core Contract Act checks
+  if (!lower.includes("consideration") && !lower.includes("fee") && !lower.includes("rent") && !lower.includes("salary") && !lower.includes("price") && !lower.includes("loan")) {
+    flags.push({ level: "high", title: "Possible absence of clear consideration", detail: "Under Section 10 & 25 of the Contract Act, 1872, an agreement without consideration is generally void (subject to limited exceptions). Ensure the value exchanged is clearly stated." });
+  }
+  if (!lower.includes("governing law") && !lower.includes("laws of pakistan") && !lower.includes("laws of the islamic republic")) {
+    flags.push({ level: "med", title: "Governing law clause missing or weak", detail: "Best practice in Pakistani commercial contracts is to expressly state that the agreement is governed by the laws of Pakistan." });
+  }
+  if (!lower.includes("jurisdiction") && !lower.includes("courts at")) {
+    flags.push({ level: "med", title: "Jurisdiction / forum clause missing", detail: "Specify the city whose courts will have jurisdiction. This reduces future forum disputes." });
+  }
+  if (!lower.includes("witness")) {
+    flags.push({ level: "med", title: "Witness attestation not mentioned", detail: "While not always mandatory for validity, attestation by two witnesses is standard Pakistani practice and strengthens evidentiary value under the Qanun-e-Shahadat Order." });
+  }
+  if (lower.includes("restraint of trade") || (lower.includes("non-compete") && !lower.includes("reasonable"))) {
+    flags.push({ level: "high", title: "Potential restraint of trade issue (Section 27)", detail: "Agreements in restraint of trade are void under Section 27 of the Contract Act, 1872, except limited exceptions (e.g., sale of goodwill). Any non-compete must be reasonable in time, geography and scope." });
+  }
+  if (lower.includes("immovable") || lower.includes("property") || lower.includes("plot") || lower.includes("sale deed")) {
+    flags.push({ level: "high", title: "Immovable property — registration & stamp duty critical", detail: "Agreements relating to immovable property often require proper stamping and, for the conveyance itself, compulsory registration under the Registration Act, 1908. An unregistered sale deed is generally ineffective to transfer title." });
+  }
+  if (lower.includes("partnership") && !lower.includes("registrar of firms")) {
+    flags.push({ level: "med", title: "Partnership registration recommended", detail: "Although registration is not mandatory for validity, an unregistered firm faces significant disabilities under the Partnership Act, 1932 (including restrictions on suing)." });
+  }
+  if (lower.includes("power of attorney") && lower.includes("property")) {
+    flags.push({ level: "high", title: "Power of Attorney for property — registration required", detail: "A Power of Attorney authorising transfer of immovable property must ordinarily be registered. Stamp duty and, for overseas principals, additional formalities apply." });
+  }
+  if (!lower.includes("stamp") && !lower.includes("note:")) {
+    flags.push({ level: "low", title: "Stamp duty reminder", detail: "Most agreements attract stamp duty under the provincial Stamp Act. Use of e-stamp paper is increasingly mandatory. Incorrect stamping can affect admissibility in evidence." });
+  }
+  if (lower.includes("minor") || lower.includes("under 18")) {
+    flags.push({ level: "high", title: "Capacity issue — minor", detail: "Under Section 11 of the Contract Act, 1872, a minor is not competent to contract. Agreements with minors are void ab initio." });
+  }
+
+  // Positive checks
+  if (lower.includes("free consent") || lower.includes("without coercion") || lower.includes("voluntarily")) {
+    flags.push({ level: "low", title: "Free consent language present", detail: "Good practice. Free consent is a core essential under Sections 13–19 of the Contract Act." });
+  }
+  if (flags.filter(f => f.level === "high").length === 0) {
+    flags.push({ level: "low", title: "No critical structural red flags detected", detail: "The document appears to cover the main formal elements. Still have a qualified Pakistani lawyer review for transaction-specific risks, tax and regulatory compliance." });
+  }
+
+  const container = document.getElementById("flags-container");
+  container.innerHTML = flags.map(f => `
+    <div class="flag ${f.level}">
+      <div>
+        <strong>${f.level === "high" ? "🔴" : f.level === "med" ? "🟡" : "🟢"} ${f.title}</strong>
+        ${f.detail}
+      </div>
+    </div>
+  `).join("");
+}
+
+function runAnalyzer() {
+  const text = document.getElementById("analyze-text").value;
+  if (!text.trim()) return alert("Please paste contract text first.");
+  // Reuse the same engine
+  const temp = document.getElementById("flags-container");
+  const orig = temp.innerHTML;
+  runRedFlags(text);
+  document.getElementById("standalone-flags").innerHTML = document.getElementById("flags-container").innerHTML;
+  document.getElementById("flags-container").innerHTML = orig;
+}
+
+// ===================== Q&A =====================
+function answerQuestion() {
+  const q = document.getElementById("qa-question").value.toLowerCase();
+  const ans = document.getElementById("qa-answer");
+  ans.classList.remove("hidden");
+
+  let response = "I can help with general questions about Pakistani contract formalities based on the Contract Act, 1872 and related laws. ";
+
+  if (q.includes("stamp") || q.includes("stamp duty") || q.includes("stamp paper")) {
+    response = "Stamp duty is governed by the Stamp Act, 1899 as adapted and amended by each province (and ICT). Rates vary significantly by instrument type and province. Many agreements require non-judicial e-stamp paper. Incorrect or insufficient stamping can make the document inadmissible in evidence until the deficit (plus penalty) is paid. Always check the current provincial schedule or consult a local stamp vendor / lawyer. Property-related instruments and high-value agreements attract higher duties.";
+  } else if (q.includes("regist")) {
+    response = "Under the Registration Act, 1908, certain documents (especially those relating to immovable property of value ≥ Rs. 100, and long-term leases) require compulsory registration. An unregistered document that is compulsorily registrable generally cannot affect immovable property or be received as evidence of the transaction (subject to limited exceptions). Partnership firms benefit from registration with the Registrar of Firms even though it is not strictly mandatory for validity.";
+  } else if (q.includes("witness")) {
+    response = "The Contract Act does not always require witnesses for validity of a contract. However, under the Qanun-e-Shahadat Order, 1984 and standard Pakistani practice, attestation by two witnesses significantly strengthens the evidentiary value of the document, especially if a dispute reaches court.";
+  } else if (q.includes("minor") || q.includes("capacity") || q.includes("competent")) {
+    response = "Section 11 of the Contract Act, 1872 provides that every person is competent to contract who is of the age of majority according to the law to which he is subject, is of sound mind, and is not disqualified from contracting by any law. Agreements by minors are void. Companies are competent subject to their objects and the Companies Act, 2017.";
+  } else if (q.includes("restraint") || q.includes("non-compete") || q.includes("section 27")) {
+    response = "Section 27 of the Contract Act, 1872 renders void every agreement by which anyone is restrained from exercising a lawful profession, trade or business, with limited exceptions (most notably, agreements not to carry on business of which goodwill is sold, within reasonable limits). Non-compete clauses must be carefully drafted to fall within the exceptions or risk being struck down.";
+  } else if (q.includes("consideration")) {
+    response = "Consideration is defined in Section 2(d) of the Contract Act. An agreement without consideration is void under Section 25, subject to important exceptions (written & registered agreements made on account of natural love and affection between near relations; promise to compensate for past voluntary services; promise to pay a time-barred debt).";
+  } else if (q.includes("specific performance") || q.includes("bayana") || q.includes("agreement to sell")) {
+    response = "An Agreement to Sell (Bayana) creates rights in personam. Ownership of immovable property passes only on execution and registration of the Sale Deed. The buyer can generally sue for specific performance under the Specific Relief Act if the seller defaults (subject to the usual equitable considerations). Earnest money / bayana treatment depends on the precise wording of the forfeiture clause and case law.";
+  } else if (q.includes("labour") || q.includes("employment") || q.includes("worker")) {
+    response = "Employment contracts for 'workers' are regulated by provincial labour laws (Industrial Relations, Shops & Establishments, Factories, etc.). Written contracts are generally required for workers. Terms cannot undercut mandatory statutory rights (minimum wage, working hours, leave, termination protections, etc.). Managerial employees have more contractual flexibility.";
+  } else {
+    response += "For the specific contract you generated, key points usually include: (1) clear identification of parties with CNIC/NTN, (2) lawful consideration and object, (3) free consent, (4) governing law of Pakistan, (5) jurisdiction clause, (6) proper stamping, and (7) witnesses. If you have a more specific question (stamp duty, registration, non-compete, termination, etc.), please ask.";
+  }
+
+  ans.innerHTML = response;
+}
+
+// ===================== GUIDE =====================
+function renderGuide() {
+  document.getElementById("guide-content").innerHTML = `
+    <div style="display:grid;gap:1.25rem">
+      <div class="panel" style="margin:0;box-shadow:none">
+        <h3 style="margin-bottom:0.5rem">1. Core Validity Requirements (Contract Act, 1872)</h3>
+        <p style="font-size:0.9rem;color:var(--muted)">Offer + Acceptance + Consideration + Capacity + Free Consent + Lawful Object. Agreements declared void by the Act (restraint of marriage, restraint of trade, wagering, uncertainty, etc.) are unenforceable.</p>
+      </div>
+      <div class="panel" style="margin:0;box-shadow:none">
+        <h3 style="margin-bottom:0.5rem">2. Stamp Duty (Stamp Act, 1899 + provincial amendments)</h3>
+        <p style="font-size:0.9rem;color:var(--muted)">Almost all agreements attract stamp duty. Rates are provincial. E-stamping is widely mandatory. Insufficient stamping affects admissibility in evidence. Property instruments and high-value contracts carry higher duty.</p>
+      </div>
+      <div class="panel" style="margin:0;box-shadow:none">
+        <h3 style="margin-bottom:0.5rem">3. Registration (Registration Act, 1908)</h3>
+        <p style="font-size:0.9rem;color:var(--muted)">Compulsory for instruments that create, declare, assign, limit or extinguish any right, title or interest in immovable property of value ≥ Rs. 100, and for leases exceeding one year (in most cases). Unregistered compulsorily registrable documents have limited legal effect.</p>
+      </div>
+      <div class="panel" style="margin:0;box-shadow:none">
+        <h3 style="margin-bottom:0.5rem">4. Common Document Triggers</h3>
+        <ul style="font-size:0.9rem;color:var(--muted);padding-left:1.2rem;line-height:1.7">
+          <li><strong>Agreement to Sell / Sale Deed</strong> — Stamp + Registration of Sale Deed mandatory for title transfer.</li>
+          <li><strong>Lease > 1 year</strong> — Generally requires registration.</li>
+          <li><strong>Partnership Deed</strong> — Registration with Registrar of Firms strongly advised.</li>
+          <li><strong>Power of Attorney (property)</strong> — Registration required.</li>
+          <li><strong>Company documents</strong> — SECP filings under Companies Act, 2017.</li>
+          <li><strong>Employment (workers)</strong> — Written contract + compliance with provincial labour laws.</li>
+        </ul>
+      </div>
+      <div class="panel" style="margin:0;box-shadow:none">
+        <h3 style="margin-bottom:0.5rem">5. Court & Corporate Formatting Norms</h3>
+        <p style="font-size:0.9rem;color:var(--muted)">Formal English, clear party identification (name, parentage/CNIC, address), numbered paragraphs, recitals (“WHEREAS”), operative part (“NOW THIS AGREEMENT WITNESSETH”), signature blocks with designation, two witnesses with CNIC, and a note on stamp paper. Pleadings follow Order VI–VIII CPC norms (material facts, not evidence, verification, etc.).</p>
+      </div>
+    </div>
+  `;
+}
+
+// ===================== UTILITIES =====================
+function formatDate(d) {
+  if (!d) return "____________";
+  const date = new Date(d);
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  return `${date.getDate()} day of ${months[date.getMonth()]}, ${date.getFullYear()}`;
+}
+
+function numberToWords(num) {
+  // Simple fallback
+  if (!num) return "_______________";
+  return num.replace(/,/g, "") + " only";
+}
+
+function loadSample() {
+  const t = TYPES[currentType];
+  if (!t || !t.sample) return;
+  Object.entries(t.sample).forEach(([k, v]) => {
+    const el = document.getElementById(k);
+    if (el) el.value = v;
+  });
+}
+
+function clearForm() {
+  document.querySelectorAll("#form-fields input, #form-fields textarea, #form-fields select").forEach(el => el.value = "");
+}
+
+function downloadTxt() {
+  if (!lastGenerated) return;
+  const blob = new Blob([lastGenerated], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${currentType}_agreement_pakistan.txt`;
+  a.click();
+}
+
+function copyToClipboard() {
+  navigator.clipboard.writeText(lastGenerated).then(() => alert("Copied to clipboard"));
+}
+
+// Init
+renderForm("service");
+</script>
+</body>
+</html>

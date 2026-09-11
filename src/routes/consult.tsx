@@ -1,0 +1,81 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { AttorneyProfile } from "@/components/attorney-profile";
+import { ConsultationForm } from "@/components/consultation-form";
+import { GlassNavbar } from "@/components/marketing/GlassNavbar";
+
+export const Route = createFileRoute("/consult")({
+  component: ConsultPage,
+  head: () => ({
+    meta: [
+      { title: "Consult Corporate Counsel — LegalPak" },
+      {
+        name: "description",
+        content:
+          "Request a consultation for cap table terms, cross-border jurisdiction clauses, SECP disputes, share restructuring, or a regulatory audit in Pakistan.",
+      },
+    ],
+  }),
+});
+
+const DISCIPLINES = [
+  {
+    title: "Corporate Governance & SECP Advisory",
+    body: "Incorporation, Form A/Form 9 handling, director induction, and share issues under the Companies Act 2017.",
+  },
+  {
+    title: "Commercial & Cross-Border Transactions",
+    body: "Master services agreements, joint ventures, and licensing under the Contract Act 1872.",
+  },
+  {
+    title: "Digital Markets & Tech Compliance",
+    body: "Data handling, platform terms, and compliance questions for multi-sided digital platforms.",
+  },
+];
+
+function ConsultPage() {
+  return (
+    <div className="luxury min-h-screen">
+      <GlassNavbar />
+      <div className="mx-auto max-w-5xl space-y-8 px-6 pt-32 pb-24 sm:pt-40">
+        <div className="text-center sm:text-left">
+          <p className="text-xs font-medium uppercase tracking-[0.3em] text-[var(--lux-bronze)]">
+            Legal Advisory Desk
+          </p>
+          <h1
+            className="mt-3 text-3xl text-[var(--lux-fg)] sm:text-4xl"
+            style={{ fontFamily: "var(--font-lux-serif)" }}
+          >
+            Need bespoke counsel?
+          </h1>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-[var(--lux-muted)] sm:mx-0">
+            Cap table terms, cross-border jurisdiction clauses, SECP disputes, share restructuring,
+            or a regulatory audit — some matters need a person, not a form. Tell us what's going on
+            and we'll get back to you.
+          </p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <ConsultationForm defaultTopic="" />
+          <div className="space-y-4">
+            <AttorneyProfile />
+            <div className="space-y-3">
+              {DISCIPLINES.map((d) => (
+                <div
+                  key={d.title}
+                  className="rounded-2xl border border-[var(--lux-border)] bg-white/[0.03] p-4 backdrop-blur-md"
+                >
+                  <p className="text-sm font-medium text-[var(--lux-fg)]">{d.title}</p>
+                  <p className="mt-1 text-xs text-[var(--lux-muted)]">{d.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      <footer className="border-t border-white/10 px-6 py-8 text-center text-xs text-[var(--lux-muted)]">
+        LegalPak drafts packs for eZfile. SECP still receives the PIN-signed filing. Not a
+        substitute for a licensed Pakistani advocate.
+      </footer>
+    </div>
+  );
+}

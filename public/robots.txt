@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /companies/
+Disallow: /consultations
+Disallow: /matters/
+Disallow: /login
+Disallow: /signup
+Disallow: /approve/
+
+Sitemap: https://legalpak.vercel.app/sitemap.xml

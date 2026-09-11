@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "LegalPak",
+      "hasCanvas": false,
+      "bodyTextLen": 896,
+      "bodyTextHash": "4aa2ce3060d58ea7e0eb66932ed68338e78860b0b10f6a2cdbf4e7f115494bd5",
+      "bodyTextPrefix": "LegalPakSECP · Contract Act 1872 Drafting aid — not a filing API",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "LegalPak",
+      "hasCanvas": false,
+      "bodyTextLen": 864,
+      "bodyTextHash": "036d83d0f7332a49d50936590e3d10ef0ada8622f878ecb26d75f58996ed1874",
+      "bodyTextPrefix": "LegalPakSECP · Contract Act 1872 Desk Financial statements Form ",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}
