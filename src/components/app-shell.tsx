@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/cn";
-import { ArrowUpRight, BookOpen, Building2, ChevronDown, FileCheck2, FileSpreadsheet, FileText, LayoutDashboard, Scale, Users } from "lucide-react";
+import { ArrowUpRight, BookOpen, Building2, ChevronDown, CreditCard, FileCheck2, FileSpreadsheet, FileText, LayoutDashboard, Scale, Users } from "lucide-react";
 
 const WORKFLOWS = [
   { to: "/accounts", label: "Financial statements", icon: FileSpreadsheet },
@@ -8,7 +8,10 @@ const WORKFLOWS = [
   { to: "/form-9", label: "Director changes", icon: Users },
   { to: "/contracts", label: "Contracts", icon: FileText },
 ];
-const RESOURCES = [{ to: "/guide", label: "Filing guide", icon: BookOpen }];
+const RESOURCES = [
+  { to: "/guide", label: "Filing guide", icon: BookOpen },
+  { to: "/checkout", label: "Pay with EasyPaisa", icon: CreditCard },
+];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });

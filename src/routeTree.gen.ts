@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountsRouteImport } from './routes/accounts'
+import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ContractsRouteImport } from './routes/contracts'
 import { Route as Form9RouteImport } from './routes/form-9'
 import { Route as FormARouteImport } from './routes/form-a'
@@ -24,6 +25,11 @@ const IndexRoute = IndexRouteImport.update({
 const AccountsRoute = AccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContractsRoute = ContractsRouteImport.update({
@@ -50,6 +56,7 @@ const GuideRoute = GuideRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
+  '/checkout': typeof CheckoutRoute
   '/contracts': typeof ContractsRoute
   '/form-9': typeof Form9Route
   '/form-a': typeof FormARoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
+  '/checkout': typeof CheckoutRoute
   '/contracts': typeof ContractsRoute
   '/form-9': typeof Form9Route
   '/form-a': typeof FormARoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
+  '/checkout': typeof CheckoutRoute
   '/contracts': typeof ContractsRoute
   '/form-9': typeof Form9Route
   '/form-a': typeof FormARoute
@@ -74,13 +83,28 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/accounts' | '/contracts' | '/form-9' | '/form-a' | '/guide'
+  fullPaths:
+    | '/'
+    | '/accounts'
+    | '/checkout'
+    | '/contracts'
+    | '/form-9'
+    | '/form-a'
+    | '/guide'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/accounts' | '/contracts' | '/form-9' | '/form-a' | '/guide'
+  to:
+    | '/'
+    | '/accounts'
+    | '/checkout'
+    | '/contracts'
+    | '/form-9'
+    | '/form-a'
+    | '/guide'
   id:
     | '__root__'
     | '/'
     | '/accounts'
+    | '/checkout'
     | '/contracts'
     | '/form-9'
     | '/form-a'
@@ -90,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountsRoute: typeof AccountsRoute
+  CheckoutRoute: typeof CheckoutRoute
   ContractsRoute: typeof ContractsRoute
   Form9Route: typeof Form9Route
   FormARoute: typeof FormARoute
@@ -110,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/accounts'
       fullPath: '/accounts'
       preLoaderRoute: typeof AccountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contracts': {
@@ -146,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountsRoute: AccountsRoute,
+  CheckoutRoute: CheckoutRoute,
   ContractsRoute: ContractsRoute,
   Form9Route: Form9Route,
   FormARoute: FormARoute,

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, FileCheck2, FileSpreadsheet, FileText, Scale, Users } from "lucide-react";
+import { ArrowRight, CreditCard, FileCheck2, FileSpreadsheet, FileText, Scale, Users } from "lucide-react";
 
 export const Route = createFileRoute("/")({ component: Home });
 
@@ -27,5 +27,7 @@ function Home() {
     </section>
 
     <section className="mt-8 grid gap-4 lg:grid-cols-[1fr_auto]"><div className="rounded-xl border border-border bg-surface p-5"><div className="flex items-start gap-3"><div className="grid size-9 shrink-0 place-items-center rounded-lg bg-bg"><Scale className="size-4 text-accent" /></div><div><h2 className="text-sm font-semibold">A clear filing handoff</h2><p className="mt-1 text-sm leading-6 text-muted">LegalPak prepares the work; the authorised filer reviews it and PIN-signs through SECP eZfile.</p></div></div></div><Link to="/guide" className="flex min-h-16 items-center justify-between gap-8 rounded-xl border border-border bg-bg px-5 text-sm font-semibold transition hover:border-primary/30 hover:bg-surface">Read the filing guide <ArrowRight className="size-4" /></Link></section>
+
+    <section className="mt-6"><Link to="/checkout" className="flex items-center justify-between gap-4 rounded-xl border border-border bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md"><div className="flex items-center gap-3"><div className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/8 text-primary"><CreditCard className="size-5" strokeWidth={1.8} /></div><div><h2 className="text-sm font-semibold">Pay with EasyPaisa</h2><p className="mt-1 text-sm text-muted">Send payment to our EasyPaisa account and confirm it in a few taps.</p></div></div><ArrowRight className="size-4 shrink-0 text-muted/50" /></Link></section>
   </div>;
 }
