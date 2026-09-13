@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { RequireSubscription } from "@/components/billing/RequireSubscription";
 import { AlertTriangle, CheckCircle2, Circle, Clock } from "lucide-react";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -10,7 +11,11 @@ import { MATTER_TYPE_LABEL, STATUS_LABEL } from "@/lib/legalpak/workflow";
 import { formatDateLong } from "@/lib/legal/accounts";
 
 export const Route = createFileRoute("/compliance")({
-  component: CompliancePage,
+  component: () => (
+    <RequireSubscription>
+      <CompliancePage />
+    </RequireSubscription>
+  ),
   head: () => ({
     meta: [
       { title: "Compliance calendar — LegalPak" },

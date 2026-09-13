@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { toast } from "sonner";
+import { RequireSubscription } from "@/components/billing/RequireSubscription";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { PackOutput } from "@/components/pack-output";
@@ -10,7 +11,11 @@ import { CONTRACT_TYPES, contractPartyLabels, generateContract } from "@/lib/leg
 import { CLAUSE_MODULES } from "@/lib/legal/clauses";
 
 export const Route = createFileRoute("/contracts")({
-  component: ContractsPage,
+  component: () => (
+    <RequireSubscription>
+      <ContractsPage />
+    </RequireSubscription>
+  ),
   head: () => ({
     meta: [
       { title: "Contracts — LegalPak" },

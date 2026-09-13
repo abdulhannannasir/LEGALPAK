@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RequireSubscription } from "@/components/billing/RequireSubscription";
 import { CompanyProfileTools } from "@/components/incorporation/CompanyProfileTools";
 import { Form21Panel } from "@/components/incorporation/Form21Panel";
 import { Form45Panel } from "@/components/incorporation/Form45Panel";
@@ -8,7 +9,11 @@ import { emptyBeneficialOwner } from "@/lib/incorporation/corporate-filings";
 import { createId } from "@/lib/legalpak/id";
 
 export const Route = createFileRoute("/corporate-filings")({
-  component: CorporateFilingsPage,
+  component: () => (
+    <RequireSubscription>
+      <CorporateFilingsPage />
+    </RequireSubscription>
+  ),
   head: () => ({
     meta: [
       { title: "Form 21 & Form 45 — LegalPak" },

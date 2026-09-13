@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountsRouteImport } from './routes/accounts'
+import { Route as BillingRouteImport } from './routes/billing'
 import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as ConsultRouteImport } from './routes/consult'
 import { Route as ConsultationsRouteImport } from './routes/consultations'
@@ -53,6 +54,11 @@ const IndexRoute = IndexRouteImport.update({
 const AccountsRoute = AccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillingRoute = BillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComplianceRoute = ComplianceRouteImport.update({
@@ -226,6 +232,7 @@ const CompaniesCompanyIdEditRoute = CompaniesCompanyIdEditRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
+  '/billing': typeof BillingRoute
   '/compliance': typeof ComplianceRoute
   '/consult': typeof ConsultRoute
   '/consultations': typeof ConsultationsRoute
@@ -263,6 +270,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
+  '/billing': typeof BillingRoute
   '/compliance': typeof ComplianceRoute
   '/consult': typeof ConsultRoute
   '/consultations': typeof ConsultationsRoute
@@ -301,6 +309,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
+  '/billing': typeof BillingRoute
   '/compliance': typeof ComplianceRoute
   '/consult': typeof ConsultRoute
   '/consultations': typeof ConsultationsRoute
@@ -340,6 +349,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/accounts'
+    | '/billing'
     | '/compliance'
     | '/consult'
     | '/consultations'
@@ -377,6 +387,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/accounts'
+    | '/billing'
     | '/compliance'
     | '/consult'
     | '/consultations'
@@ -414,6 +425,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/accounts'
+    | '/billing'
     | '/compliance'
     | '/consult'
     | '/consultations'
@@ -452,6 +464,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountsRoute: typeof AccountsRoute
+  BillingRoute: typeof BillingRoute
   ComplianceRoute: typeof ComplianceRoute
   ConsultRoute: typeof ConsultRoute
   ConsultationsRoute: typeof ConsultationsRoute
@@ -501,6 +514,13 @@ declare module '@tanstack/react-router' {
       path: '/accounts'
       fullPath: '/accounts'
       preLoaderRoute: typeof AccountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/billing': {
+      id: '/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof BillingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/compliance': {
@@ -740,6 +760,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountsRoute: AccountsRoute,
+  BillingRoute: BillingRoute,
   ComplianceRoute: ComplianceRoute,
   ConsultRoute: ConsultRoute,
   ConsultationsRoute: ConsultationsRoute,

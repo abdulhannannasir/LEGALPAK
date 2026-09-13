@@ -64,12 +64,14 @@ const SERVICES = [
     title: "Citizen Legal Help",
     body: "Ask LegalPak AI in plain language — English, Roman Urdu, or Urdu — draft documents, and find a verified advocate.",
     icon: MessageCircle,
+    free: true,
   },
   {
     to: "/help-desk",
     title: "Help Desk & Rights Navigator",
     body: "Guided wizards for utility overbilling, cyber harassment, eviction, police encounters, and inheritance, with emergency helplines on every page.",
     icon: LifeBuoy,
+    free: true,
   },
   {
     to: "/accounts",
@@ -139,6 +141,14 @@ function Home() {
         >
           A Desk for Every Filing
         </h2>
+        <p className="mx-auto mt-4 max-w-xl text-center text-sm text-[var(--lux-muted)]">
+          Citizen Legal Help and the Help Desk are free, always. The Corporate Suite is PKR
+          3,000/month per workspace —{" "}
+          <Link to="/billing" className="text-[var(--lux-gold)] underline">
+            see billing
+          </Link>
+          .
+        </p>
 
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map((s) => {
@@ -150,7 +160,14 @@ function Home() {
                 className="group relative overflow-hidden rounded-2xl border border-[var(--lux-border)] bg-white/[0.03] p-6 backdrop-blur-md transition-colors hover:border-[var(--lux-border-strong)]"
               >
                 <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[var(--lux-gold)]/0 via-transparent to-[var(--lux-sapphire)]/0 opacity-0 transition-opacity duration-500 group-hover:opacity-10" />
-                <Icon className="size-5 text-[var(--lux-gold)]" strokeWidth={1.5} />
+                <div className="flex items-start justify-between">
+                  <Icon className="size-5 text-[var(--lux-gold)]" strokeWidth={1.5} />
+                  {"free" in s && s.free && (
+                    <span className="rounded-full border border-[var(--lux-gold)]/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--lux-gold)]">
+                      Free
+                    </span>
+                  )}
+                </div>
                 <h3
                   className="mt-4 text-lg text-[var(--lux-fg)]"
                   style={{ fontFamily: "var(--font-lux-serif)" }}

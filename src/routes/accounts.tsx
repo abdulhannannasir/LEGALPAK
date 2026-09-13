@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { RequireSubscription } from "@/components/billing/RequireSubscription";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Flags } from "@/components/flags";
@@ -15,7 +16,11 @@ import {
 } from "@/lib/legal/accounts";
 
 export const Route = createFileRoute("/accounts")({
-  component: AccountsPage,
+  component: () => (
+    <RequireSubscription>
+      <AccountsPage />
+    </RequireSubscription>
+  ),
   head: () => ({
     meta: [
       { title: "Financial statements — LegalPak" },

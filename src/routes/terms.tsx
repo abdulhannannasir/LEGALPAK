@@ -116,11 +116,18 @@ function TermsPage() {
       <section className="space-y-3 rounded-[var(--radius-lg)] border border-border bg-surface p-5">
         <h2 className="font-display text-lg">Fees</h2>
         <p className="text-sm leading-relaxed text-muted">
-          The drafting tools on LegalPak are free to use. Where the site connects you to a person —
-          an advocate via Consult Counsel or the lawyer directory — that advocate's own
-          consultation fee applies and is shown before you book. We may introduce paid features in
-          the future; if we do, this page will be updated and pricing will be shown clearly before
-          you pay for anything.
+          Citizen Legal Help and the Help Desk & Rights Navigator are free. The Corporate Suite
+          (Financial Statements, Form A, Form 9, Contracts, Incorporation, Form 21/45, Legal
+          Notices, the Tax Assistant, and the Compliance Calendar) requires an active subscription
+          of PKR 3,000 per month per workspace, paid by manual EasyPaisa transfer — see{" "}
+          <a href="/billing" className="text-accent underline">
+            Billing
+          </a>{" "}
+          for the current process. Because this is a manual transfer rather than an automated
+          payment gateway, activation happens once we've verified your transfer, not instantly on
+          submission; contact us if a payment isn't reflected within a reasonable time. Where the
+          site connects you to a person — an advocate via Consult Counsel or the lawyer directory —
+          that advocate's own consultation fee applies separately and is shown before you book.
         </p>
       </section>
 

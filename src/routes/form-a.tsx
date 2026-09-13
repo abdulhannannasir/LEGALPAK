@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { RequireSubscription } from "@/components/billing/RequireSubscription";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Flags } from "@/components/flags";
@@ -10,7 +11,11 @@ import { usePersistedState } from "@/lib/use-persisted-state";
 import { formAAdvice, type FormAInput } from "@/lib/legal/form-a";
 
 export const Route = createFileRoute("/form-a")({
-  component: FormAPage,
+  component: () => (
+    <RequireSubscription>
+      <FormAPage />
+    </RequireSubscription>
+  ),
   head: () => ({
     meta: [
       { title: "Form A annual return — LegalPak" },

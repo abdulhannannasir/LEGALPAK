@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { toast } from "sonner";
+import { RequireSubscription } from "@/components/billing/RequireSubscription";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -21,7 +22,11 @@ import {
 } from "@/lib/notices/notices";
 
 export const Route = createFileRoute("/notices")({
-  component: NoticesPage,
+  component: () => (
+    <RequireSubscription>
+      <NoticesPage />
+    </RequireSubscription>
+  ),
   head: () => ({
     meta: [
       { title: "Pre-Litigation Legal Notices — LegalPak" },

@@ -5,6 +5,7 @@ import {
   BookOpen,
   Building2,
   CalendarClock,
+  CreditCard,
   FileSpreadsheet,
   FileText,
   Gavel,
@@ -27,6 +28,7 @@ import { computeScrollEdges } from "@/lib/nav-scroll";
 const NAV = [
   { to: "/", label: "Desk", icon: Scale },
   { to: "/dashboard", label: "Companies", icon: LayoutDashboard },
+  { to: "/billing", label: "Billing", icon: CreditCard },
   { to: "/incorporation", label: "Register Company", icon: Rocket },
   { to: "/corporate-filings", label: "Form 21 & Form 45", icon: ScrollText },
   { to: "/notices", label: "Legal Notices", icon: Send },

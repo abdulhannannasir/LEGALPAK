@@ -81,6 +81,13 @@ function PrivacyPage() {
             consultation, we store the details you submit so it can be routed to counsel.
           </li>
           <li>
+            <strong className="text-fg">Payment verification.</strong> If you subscribe to the
+            Corporate Suite, we store the EasyPaisa transaction id and the phone number you sent
+            the payment from, so we can match it to your workspace and verify the transfer. We do
+            not collect your EasyPaisa PIN, password, or card details — we have no payment form
+            that asks for them.
+          </li>
+          <li>
             <strong className="text-fg">Audit and security logs.</strong> We keep a log of
             significant actions on your account and companies (e.g. company created, matter status
             changed) for accountability and to help you and us detect unauthorized access.

@@ -1,11 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
+import { RequireSubscription } from "@/components/billing/RequireSubscription";
 import { Flags } from "@/components/flags";
 import { recommendFilings, type IncomeSource, type TaxpayerKind } from "@/lib/tax/tax-assistant";
 
 export const Route = createFileRoute("/tax-assistant")({
-  component: TaxAssistantPage,
+  component: () => (
+    <RequireSubscription>
+      <TaxAssistantPage />
+    </RequireSubscription>
+  ),
   head: () => ({
     meta: [
       { title: "Tax Assistant — LegalPak" },

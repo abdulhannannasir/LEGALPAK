@@ -10,6 +10,7 @@ import { CapitalStep } from "@/components/incorporation/CapitalStep";
 import { SubscribersStep } from "@/components/incorporation/SubscribersStep";
 import { DocumentPack } from "@/components/incorporation/DocumentPack";
 import { CompanyProfileTools } from "@/components/incorporation/CompanyProfileTools";
+import { RequireSubscription } from "@/components/billing/RequireSubscription";
 import { buildCompanyProfile, type CompanyProfile } from "@/lib/incorporation/company-profile";
 import { usePersistedState } from "@/lib/use-persisted-state";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -29,7 +30,11 @@ import {
 import { createId } from "@/lib/legalpak/id";
 
 export const Route = createFileRoute("/incorporation")({
-  component: IncorporationPage,
+  component: () => (
+    <RequireSubscription>
+      <IncorporationPage />
+    </RequireSubscription>
+  ),
   head: () => ({
     meta: [
       { title: "Company Registration & eZfile Pre-Flight — LegalPak" },

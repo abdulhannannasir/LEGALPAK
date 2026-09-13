@@ -25,7 +25,7 @@ export const FAQS: FaqItem[] = [
   {
     question: "Do I need an account to use the tools?",
     answer:
-      "Most generators — Contracts, Financial Statements, Citizen document drafts, the Help Desk wizards, Incorporation, Form 21/45, and Legal Notices — work without signing in, and your in-progress drafts are kept in your browser. Signing in is only required to save a permanent Company Profile, which is what unlocks starting Financial Statements, Form A, Form 9, and Contract matters tied to that specific company.",
+      "Citizen document drafts and the Help Desk wizards don't need an account — use them anonymously, and your in-progress drafts are kept in your browser. The Corporate Suite (Contracts, Financial Statements, Incorporation, Form 21/45, Legal Notices, and the rest) requires signing in and an active subscription on the workspace you're using, since that's also what unlocks saving a permanent Company Profile.",
   },
   {
     question: "What happens to my company data after I finish the Incorporation wizard?",
@@ -55,6 +55,11 @@ export const FAQS: FaqItem[] = [
   {
     question: "Does LegalPak cost anything?",
     answer:
-      "The drafting tools themselves are free to use. Where LegalPak connects you to a person — a verified advocate via Consult Counsel or the lawyer directory — that advocate's own consultation fee applies, shown upfront before you book (starting around PKR 2,000).",
+      "Citizen Legal Help and the Help Desk & Rights Navigator are free, no account needed. The Corporate Suite — Financial Statements, Form A, Form 9, Contracts, Incorporation, Form 21/45, Legal Notices, the Tax Assistant, and the Compliance Calendar — is PKR 3,000/month per workspace, paid via EasyPaisa (see /billing). Where LegalPak connects you to a person — a verified advocate via Consult Counsel or the lawyer directory — that advocate's own consultation fee applies separately, shown upfront before you book (starting around PKR 2,000).",
+  },
+  {
+    question: "How does the EasyPaisa payment actually work?",
+    answer:
+      "It's a manual transfer, not an automated checkout — we don't have a payment-gateway integration with EasyPaisa (that requires a registered merchant account, which we don't have set up yet). You send PKR 3,000 to the EasyPaisa number shown on the billing page from your own EasyPaisa app, then submit the transaction id there. We verify the transfer landed and activate your subscription, usually within a business day. We never ask for your EasyPaisa PIN or card details.",
   },
 ];

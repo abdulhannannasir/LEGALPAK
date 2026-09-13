@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { RequireSubscription } from "@/components/billing/RequireSubscription";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Flags } from "@/components/flags";
@@ -11,7 +12,11 @@ import { isValidCnic, formatCnic } from "@/lib/legal/validate";
 import { form9Advice, type Form9Event, type Form9Input } from "@/lib/legal/form9";
 
 export const Route = createFileRoute("/form-9")({
-  component: Form9Page,
+  component: () => (
+    <RequireSubscription>
+      <Form9Page />
+    </RequireSubscription>
+  ),
   head: () => ({
     meta: [
       { title: "Form 9 director change — LegalPak" },
