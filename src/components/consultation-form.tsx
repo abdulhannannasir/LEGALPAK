@@ -49,7 +49,7 @@ export function ConsultationForm({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-[var(--radius-lg)] border border-border bg-surface p-5">
+    <form onSubmit={submit} data-build="cache-refresh-2" className="space-y-4 rounded-[var(--radius-lg)] border border-border bg-surface p-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Your name">
           <Input required value={name} onChange={(e) => setName(e.target.value)} />

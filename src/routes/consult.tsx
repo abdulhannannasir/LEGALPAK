@@ -34,7 +34,7 @@ const DISCIPLINES = [
 
 function ConsultPage() {
   return (
-    <div className="luxury min-h-screen">
+    <div className="luxury min-h-screen" data-build="cache-refresh-2">
       <GlassNavbar />
       <div className="mx-auto max-w-5xl space-y-8 px-6 pt-32 pb-24 sm:pt-40">
         <div className="text-center sm:text-left">
