@@ -4,6 +4,7 @@
  * server round-trip — drafts are generated client-side and are starting
  * points, not filed documents.
  */
+import type { Lang } from "./i18n";
 
 function today(): string {
   return new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
@@ -13,14 +14,34 @@ function pkr(n: number): string {
   return n ? `PKR ${n.toLocaleString("en-PK")}` : "[amount]";
 }
 
-export type EmergencyContact = { label: string; labelUrdu: string; number: string };
+export type EmergencyContact = {
+  label: string;
+  labelUrdu: string;
+  labelRoman: string;
+  number: string;
+};
 
 export const EMERGENCY_CONTACTS: EmergencyContact[] = [
-  { label: "Police Emergency", labelUrdu: "پولیس ایمرجنسی", number: "15" },
-  { label: "Cybercrime (NCCIA/FIA)", labelUrdu: "سائبر کرائم", number: "1799" },
-  { label: "Free Legal Aid (Human Rights)", labelUrdu: "مفت قانونی امداد", number: "1099" },
-  { label: "Disaster & Rescue", labelUrdu: "ریسکیو", number: "1122" },
-  { label: "Overbilling (Wafaqi Mohtasib)", labelUrdu: "محتسب اوور بلنگ", number: "1055" },
+  { label: "Police Emergency", labelUrdu: "پولیس ایمرجنسی", labelRoman: "Police Emergency", number: "15" },
+  {
+    label: "Cybercrime (NCCIA/FIA)",
+    labelUrdu: "سائبر کرائم",
+    labelRoman: "Cybercrime (NCCIA/FIA)",
+    number: "1799",
+  },
+  {
+    label: "Free Legal Aid (Human Rights)",
+    labelUrdu: "مفت قانونی امداد",
+    labelRoman: "Muft Qanooni Imdad",
+    number: "1099",
+  },
+  { label: "Disaster & Rescue", labelUrdu: "ریسکیو", labelRoman: "Rescue", number: "1122" },
+  {
+    label: "Overbilling (Wafaqi Mohtasib)",
+    labelUrdu: "محتسب اوور بلنگ",
+    labelRoman: "Mohtasib Overbilling",
+    number: "1055",
+  },
 ];
 
 export type HelpDeskCategory = {
@@ -233,8 +254,20 @@ export type TenantProtectionInput = {
   city: string;
 };
 
-export function tenancyGroundsExplainer(i: Pick<TenantProtectionInput, "province">): string {
-  return `Under ${TENANCY_LAW[i.province]}, a landlord may generally seek eviction only on limited statutory grounds — typically: default in payment of rent, expiry of the agreed tenancy term, the landlord's bona fide personal need, the tenant subletting without consent, or the tenant causing material damage to the premises. A landlord cannot lawfully lock out a tenant, remove belongings, or disconnect electricity/gas/water to force a vacation — that self-help route is itself unlawful and can be restrained by a rent tribunal/court, regardless of who is "right" about the underlying dispute.`;
+const TENANCY_GROUNDS_TEMPLATE = {
+  en: (law: string) =>
+    `Under ${law}, a landlord may generally seek eviction only on limited statutory grounds — typically: default in payment of rent, expiry of the agreed tenancy term, the landlord's bona fide personal need, the tenant subletting without consent, or the tenant causing material damage to the premises. A landlord cannot lawfully lock out a tenant, remove belongings, or disconnect electricity/gas/water to force a vacation — that self-help route is itself unlawful and can be restrained by a rent tribunal/court, regardless of who is "right" about the underlying dispute.`,
+  ur: (law: string) =>
+    `${law} کے تحت، مکان مالک عموماً صرف محدود قانونی بنیادوں پر بے دخلی کا مطالبہ کر سکتا ہے — عموماً: کرایہ ادا نہ کرنا، طے شدہ مدتِ کرایہ داری ختم ہونا، مالک کی نیک نیتی پر مبنی ذاتی ضرورت، کرایہ دار کا بلا اجازت دوبارہ کرائے پر دینا، یا کرایہ دار کا جائیداد کو نقصان پہنچانا۔ مکان مالک قانونی طور پر تالا نہیں لگا سکتا، سامان نہیں ہٹا سکتا، یا بجلی/گیس/پانی منقطع کر کے زبردستی خالی نہیں کروا سکتا — یہ خود اپنے ہاتھوں فیصلہ کرنے کا طریقہ غیر قانونی ہے اور رینٹ ٹریبونل/عدالت اسے روک سکتی ہے، چاہے اصل تنازع میں کون "حق بجانب" ہو۔`,
+  roman: (law: string) =>
+    `${law} ke tehat, makan malik umooman sirf mehdood qanooni bunyadon par bedakhli ka mutaliba kar sakta hai — umooman: kiraya ada na karna, tay shuda muddat-e-kirayadari khatam hona, malik ki nek niyati par mabni zati zaroorat, kirayadar ka bila ijazat dobara kiraye par dena, ya kirayadar ka jaidad ko nuqsan pohnchana. Makan malik qanooni tor par tala nahi laga sakta, samaan nahi hata sakta, ya bijli/gas/pani munqate kar ke zabardasti khali nahi karwa sakta — yeh khud apne hathon faisla karne ka tareeqa ghair qanooni hai aur Rent Tribunal/adalat isay rok sakti hai, chahay asal tanaza mein kaun "haq bajanib" ho.`,
+} satisfies Record<Lang, (law: string) => string>;
+
+export function tenancyGroundsExplainer(
+  i: Pick<TenantProtectionInput, "province">,
+  lang: Lang = "en",
+): string {
+  return TENANCY_GROUNDS_TEMPLATE[lang](TENANCY_LAW[i.province]);
 }
 
 export function generateUrgentObjectionNotice(i: TenantProtectionInput): string {
@@ -296,6 +329,43 @@ export const POLICE_RIGHTS_NOTES = {
   firVsComplaint: `A cognizable offence (Section 154 CrPC) lets police register an FIR and investigate/arrest without a Magistrate's prior permission. A non-cognizable offence (Section 155 CrPC) requires the complainant to approach a Magistrate first — police cannot investigate without the Magistrate's order. If police refuse to register an FIR for a cognizable offence, you may apply directly to the relevant Magistrate under Section 22-A/22-B CrPC.`,
   preArrestBail: `Pre-arrest bail ("bail before arrest") under Section 498 CrPC may be sought from the Sessions Court or High Court when a person apprehends arrest in a criminal case and believes the case against them is mala fide or does not disclose their guilt. It is an interim protection pending the court's final decision, and typically requires surety bonds; consult an advocate promptly once you learn an FIR names you.`,
 };
+
+export const POLICE_ENCOUNTER_STATUSES = [
+  "Stopped / questioned only",
+  "Detained at a police station",
+  "Arrested",
+  "Named in an FIR, not yet arrested",
+] as const;
+
+export type PoliceEncounterInput = {
+  personName: string;
+  city: string;
+  offense: string;
+  currentStatus: (typeof POLICE_ENCOUNTER_STATUSES)[number];
+  incidentDescription: string;
+};
+
+export function generatePoliceEncounterBrief(i: PoliceEncounterInput): string {
+  const entry = findOffense(i.offense);
+  return `ADVOCATE INTAKE BRIEF — POLICE ENCOUNTER / POSSIBLE CRIMINAL MATTER
+
+Name: ${i.personName || "[Your Name]"}
+City: ${i.city || "[City]"}
+Date: ${today()}
+
+Current status: ${i.currentStatus}
+Offense involved (as understood by the person): ${i.offense || "[offense]"}
+${entry ? `Classification: ${entry.cognizable ? "Cognizable (Section 154 CrPC) — police may register an FIR directly." : "Non-cognizable (Section 155 CrPC) — requires a Magistrate's order first."}\nNote: ${entry.note}` : ""}
+
+What happened: ${i.incidentDescription || "[describe the encounter — date, time, location, and what officers said/did]"}
+
+Immediate priorities for the advocate:
+1. ${i.currentStatus === "Arrested" ? "Confirm production before a Magistrate within 24 hours of arrest (Article 10, Constitution of Pakistan) and assess regular bail." : i.currentStatus === "Named in an FIR, not yet arrested" ? "Assess urgency of pre-arrest bail under Section 498 CrPC before any arrest is attempted." : i.currentStatus === "Detained at a police station" ? "Confirm the legal basis for detention and whether 24-hour production timelines are being observed." : "Confirm whether any FIR has been or is likely to be registered, and preserve details of the stop."}
+2. Verify whether the offense is cognizable or non-cognizable and whether an FIR has actually been registered.
+3. Identify the investigating officer, police station, and any case/FIR number.
+
+This is a starting brief for an advocate, not a filed pleading — bring this brief, your CNIC, and any paperwork received from police (FIR copy, recovery memo, notice) to the consultation.`;
+}
 
 /* ---------------------------------------------------------------------- */
 /* 5. Succession / inheritance triage                                      */
@@ -361,4 +431,133 @@ Because a title dispute, missing/deceased heir, or unrepresented minor is involv
 4. Supporting documents to gather: death certificate, CNICs of all heirs, property registration/title documents (fard/registry/mutation), FRC, and any prior wills or family settlements.
 
 This is a starting brief for an advocate, not a filed pleading — the exact prayer and forum depend on the specific property records and the heirs' documented status.`;
+}
+
+/* ---------------------------------------------------------------------- */
+/* 6. Recovery of money — demand notice                                    */
+/* ---------------------------------------------------------------------- */
+
+export const DEBT_BASES = [
+  "Loan / borrowed money",
+  "Unpaid invoice for goods or services",
+  "Written agreement / contract",
+  "Other",
+] as const;
+
+export type MoneyRecoveryInput = {
+  claimantName: string;
+  claimantAddress: string;
+  debtorName: string;
+  debtorAddress: string;
+  basisOfDebt: (typeof DEBT_BASES)[number];
+  amountOwed: number;
+  dueDate: string;
+  city: string;
+};
+
+/** A written promise, cheque, or acknowledged account can go by the faster Order XXXVII CPC summary-suit route. */
+export function moneyRecoverySuitRoute(
+  i: Pick<MoneyRecoveryInput, "basisOfDebt">,
+): "summary" | "regular" {
+  return i.basisOfDebt === "Written agreement / contract" ? "summary" : "regular";
+}
+
+export function generateMoneyRecoveryNotice(i: MoneyRecoveryInput): string {
+  const route = moneyRecoverySuitRoute(i);
+  return `LEGAL NOTICE FOR RECOVERY OF MONEY
+
+To,
+${i.debtorName || "[Debtor's Name]"}
+${i.debtorAddress || "[Debtor's Address]"}
+
+From,
+${i.claimantName || "[Your Name]"}
+${i.claimantAddress || "[Your Address]"}
+
+Date: ${today()}
+
+Subject: Legal notice for recovery of PKR ${i.amountOwed ? i.amountOwed.toLocaleString("en-PK") : "[Amount]"}
+
+Dear Sir/Madam,
+
+Under instructions from and on behalf of ${i.claimantName || "[Your Name]"}, I serve upon you the following legal notice:
+
+1. That a sum of PKR ${i.amountOwed ? i.amountOwed.toLocaleString("en-PK") : "[Amount]"} is due and payable by you to my client on account of ${i.basisOfDebt || "[basis of the debt]"}, the same having fallen due on ${i.dueDate || "[due date]"}.
+2. That despite the said amount being due and payable, and despite repeated requests, you have failed and neglected to make payment of the same.
+3. That your failure to pay renders you liable to my client for the said amount along with damages, costs, and interest as may be allowed by law.
+
+You are hereby called upon to make payment of the above sum of PKR ${i.amountOwed ? i.amountOwed.toLocaleString("en-PK") : "[Amount]"} within fourteen (14) days of receipt of this notice, failing which my client shall be constrained to initiate ${route === "summary" ? "a summary suit for recovery under Order XXXVII of the Code of Civil Procedure, 1908" : "a civil suit for recovery under the Code of Civil Procedure, 1908"}, entirely at your risk, cost, and consequences as to costs and interest.
+
+This notice is issued without prejudice to any other right or remedy available to my client under the law, including under the Contract Act, 1872.
+
+Dated: ${today()} at ${i.city || "[City]"}
+
+Yours faithfully,
+
+_________________________
+${i.claimantName || "[Your Name]"}
+
+Send by registered post with acknowledgement due (AD), and retain the postal receipt and a copy of this notice.`;
+}
+
+/* ---------------------------------------------------------------------- */
+/* 7. General-purpose legal notice                                         */
+/* ---------------------------------------------------------------------- */
+
+export const LEGAL_NOTICE_PURPOSES = [
+  "Demand for payment",
+  "Breach of agreement",
+  "Stop harassment / nuisance",
+  "Property / possession dispute",
+  "Other",
+] as const;
+
+export type GeneralLegalNoticeInput = {
+  purpose: (typeof LEGAL_NOTICE_PURPOSES)[number];
+  senderName: string;
+  senderAddress: string;
+  recipientName: string;
+  recipientAddress: string;
+  facts: string;
+  demand: string;
+  deadlineDays: number;
+  city: string;
+};
+
+export function generateGeneralLegalNotice(i: GeneralLegalNoticeInput): string {
+  const deadline = i.deadlineDays || 14;
+  return `LEGAL NOTICE
+
+To,
+${i.recipientName || "[Recipient's Name]"}
+${i.recipientAddress || "[Recipient's Address]"}
+
+From,
+${i.senderName || "[Your Name]"}
+${i.senderAddress || "[Your Address]"}
+
+Date: ${today()}
+
+Subject: Legal notice — ${i.purpose || "[subject of notice]"}
+
+Dear Sir/Madam,
+
+Under instructions from and on behalf of ${i.senderName || "[Your Name]"}, I serve upon you the following legal notice:
+
+1. That the facts giving rise to this notice are as follows: ${i.facts || "[describe what happened, with relevant dates]"}.
+2. That the aforesaid acts/omissions on your part are unlawful and have caused loss and inconvenience to my client.
+3. That my client hereby demands the following: ${i.demand || "[state exactly what you want the recipient to do]"}.
+
+You are hereby called upon to comply with the above demand within ${deadline} days of receipt of this notice, failing which my client shall be constrained to initiate appropriate legal proceedings against you, entirely at your risk, cost, and consequences.
+
+This notice is issued without prejudice to any other right or remedy available to my client under the law.
+
+Dated: ${today()} at ${i.city || "[City]"}
+
+Yours faithfully,
+
+_________________________
+${i.senderName || "[Your Name]"}
+
+Send by registered post with acknowledgement due (AD), or by courier, and retain proof of dispatch and a copy of this notice.`;
 }

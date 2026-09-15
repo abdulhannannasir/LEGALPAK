@@ -1,72 +1,80 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FileText, LifeBuoy, MessageCircle, Scale } from "lucide-react";
+import { FileText, MessageCircle, Scale } from "lucide-react";
+import { LanguageSwitcher } from "@/components/citizen/language-switcher";
+import { TOPICS } from "@/lib/citizen/topics";
+import { t, UI, dirFor, usePersistedLang } from "@/lib/citizen/i18n";
 
 export const Route = createFileRoute("/citizen/")({
   component: CitizenHubPage,
   head: () => ({
     meta: [
-      { title: "Citizen legal help — LegalPak" },
+      { title: "What happened? — Citizen legal help — LegalPak" },
       {
         name: "description",
         content:
-          "Free legal help for Pakistani citizens — AI chat in English, Roman Urdu, or Urdu, plain-language document drafts, and a directory of verified advocates.",
+          "Tell LegalPak what happened and get a guided path to your rights, next steps, evidence to preserve, and a document you can generate — in English, Urdu, or Roman Urdu.",
       },
     ],
   }),
 });
 
-const CARDS = [
-  {
-    to: "/help-desk",
-    title: "Help Desk & Rights Navigator",
-    body: "Guided wizards for utility overbilling, cyber harassment, eviction, police encounters, and inheritance — with emergency helplines and ready-to-print notices.",
-    icon: LifeBuoy,
-  },
-  {
-    to: "/citizen/chat",
-    title: "Ask LegalPak AI",
-    body: "Describe your situation in plain language — English, Roman Urdu, or Urdu — and get preliminary guidance on your rights and next steps.",
-    icon: MessageCircle,
-  },
-  {
-    to: "/citizen/documents",
-    title: "Draft a document",
-    body: "Affidavits, tenancy deeds, a 489-F cheque-dishonour notice, or a consumer complaint — plain-language starting drafts.",
-    icon: FileText,
-  },
-  {
-    to: "/citizen/lawyers",
-    title: "Find a lawyer",
-    body: "A directory of verified advocates by city and court level, for when a matter needs a person, not a form.",
-    icon: Scale,
-  },
+const SECONDARY_LINKS = [
+  { to: "/citizen/chat", label: UI.askAi, icon: MessageCircle },
+  { to: "/citizen/documents", label: UI.draftDocument, icon: FileText },
+  { to: "/citizen/lawyers", label: UI.findLawyer, icon: Scale },
 ];
 
 function CitizenHubPage() {
+  const [lang, setLang] = usePersistedLang();
+  const dir = dirFor(lang);
+
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-widest text-muted">
-          For every citizen
-        </p>
-        <h1 className="font-display mt-1 text-3xl md:text-4xl">Legal help, in plain language</h1>
-        <p className="mt-3 max-w-2xl text-muted">
-          Preliminary guidance under Pakistani law — not a substitute for a licensed advocate, but a
-          place to start when you don't know where to start.
-        </p>
+    <div className="space-y-8" dir={dir}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-widest text-muted">
+            {t(lang, UI.eyebrow)}
+          </p>
+          <h1 className="font-display mt-1 text-3xl md:text-4xl">{t(lang, UI.hubTitle)}</h1>
+          <p className="mt-3 max-w-2xl text-muted">{t(lang, UI.hubSubtitle)}</p>
+        </div>
+        <LanguageSwitcher lang={lang} onChange={setLang} />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {CARDS.map((c) => {
-          const Icon = c.icon;
+
+      <p className="max-w-2xl rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-muted">
+        {t(lang, UI.disclaimer)}
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {TOPICS.map((topic) => {
+          const Icon = topic.icon;
           return (
             <Link
-              key={c.to}
-              to={c.to}
-              className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-sm transition-colors hover:border-accent"
+              key={topic.id}
+              to={topic.to}
+              className="group flex flex-col justify-between rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-sm transition-colors hover:border-accent"
             >
-              <Icon className="size-5 text-accent" strokeWidth={1.75} />
-              <h2 className="mt-3 font-display text-xl">{c.title}</h2>
-              <p className="mt-1 text-sm text-muted">{c.body}</p>
+              <div>
+                <Icon className="size-5 text-accent" strokeWidth={1.75} />
+                <h2 className="font-display mt-3 text-lg leading-snug">{t(lang, topic.title)}</h2>
+                <p className="mt-1.5 text-sm text-muted">{t(lang, topic.body)}</p>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap gap-3 border-t border-border pt-6">
+        {SECONDARY_LINKS.map((l) => {
+          const Icon = l.icon;
+          return (
+            <Link
+              key={l.to}
+              to={l.to}
+              className="flex min-h-10 items-center gap-2 rounded-full border border-border bg-surface px-4 text-sm text-muted hover:border-accent hover:text-fg"
+            >
+              <Icon className="size-4" strokeWidth={1.75} />
+              {t(lang, l.label)}
             </Link>
           );
         })}

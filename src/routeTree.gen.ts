@@ -41,8 +41,11 @@ import { Route as CompaniesCompanyIdRouteImport } from './routes/companies.$comp
 import { Route as CompaniesNewRouteImport } from './routes/companies.new'
 import { Route as ContractsTypeIdRouteImport } from './routes/contracts_.$typeId'
 import { Route as HelpDeskIndexRouteImport } from './routes/help-desk.index'
+import { Route as HelpDeskBouncedChequeRouteImport } from './routes/help-desk.bounced-cheque'
 import { Route as HelpDeskCyberReportRouteImport } from './routes/help-desk.cyber-report'
+import { Route as HelpDeskLegalNoticeRouteImport } from './routes/help-desk.legal-notice'
 import { Route as HelpDeskPoliceEncounterRouteImport } from './routes/help-desk.police-encounter'
+import { Route as HelpDeskRecoverMoneyRouteImport } from './routes/help-desk.recover-money'
 import { Route as HelpDeskSuccessionRouteImport } from './routes/help-desk.succession'
 import { Route as HelpDeskTenantProtectionRouteImport } from './routes/help-desk.tenant-protection'
 import { Route as HelpDeskUtilityDisputeRouteImport } from './routes/help-desk.utility-dispute'
@@ -211,14 +214,29 @@ const HelpDeskIndexRoute = HelpDeskIndexRouteImport.update({
   path: '/help-desk/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpDeskBouncedChequeRoute = HelpDeskBouncedChequeRouteImport.update({
+  id: '/help-desk/bounced-cheque',
+  path: '/help-desk/bounced-cheque',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HelpDeskCyberReportRoute = HelpDeskCyberReportRouteImport.update({
   id: '/help-desk/cyber-report',
   path: '/help-desk/cyber-report',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpDeskLegalNoticeRoute = HelpDeskLegalNoticeRouteImport.update({
+  id: '/help-desk/legal-notice',
+  path: '/help-desk/legal-notice',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HelpDeskPoliceEncounterRoute = HelpDeskPoliceEncounterRouteImport.update({
   id: '/help-desk/police-encounter',
   path: '/help-desk/police-encounter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpDeskRecoverMoneyRoute = HelpDeskRecoverMoneyRouteImport.update({
+  id: '/help-desk/recover-money',
+  path: '/help-desk/recover-money',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HelpDeskSuccessionRoute = HelpDeskSuccessionRouteImport.update({
@@ -290,8 +308,11 @@ export interface FileRoutesByFullPath {
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/companies/new': typeof CompaniesNewRoute
   '/contracts/$typeId': typeof ContractsTypeIdRoute
+  '/help-desk/bounced-cheque': typeof HelpDeskBouncedChequeRoute
   '/help-desk/cyber-report': typeof HelpDeskCyberReportRoute
+  '/help-desk/legal-notice': typeof HelpDeskLegalNoticeRoute
   '/help-desk/police-encounter': typeof HelpDeskPoliceEncounterRoute
+  '/help-desk/recover-money': typeof HelpDeskRecoverMoneyRoute
   '/help-desk/succession': typeof HelpDeskSuccessionRoute
   '/help-desk/tenant-protection': typeof HelpDeskTenantProtectionRoute
   '/help-desk/utility-dispute': typeof HelpDeskUtilityDisputeRoute
@@ -333,8 +354,11 @@ export interface FileRoutesByTo {
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/companies/new': typeof CompaniesNewRoute
   '/contracts/$typeId': typeof ContractsTypeIdRoute
+  '/help-desk/bounced-cheque': typeof HelpDeskBouncedChequeRoute
   '/help-desk/cyber-report': typeof HelpDeskCyberReportRoute
+  '/help-desk/legal-notice': typeof HelpDeskLegalNoticeRoute
   '/help-desk/police-encounter': typeof HelpDeskPoliceEncounterRoute
+  '/help-desk/recover-money': typeof HelpDeskRecoverMoneyRoute
   '/help-desk/succession': typeof HelpDeskSuccessionRoute
   '/help-desk/tenant-protection': typeof HelpDeskTenantProtectionRoute
   '/help-desk/utility-dispute': typeof HelpDeskUtilityDisputeRoute
@@ -377,8 +401,11 @@ export interface FileRoutesById {
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/companies/new': typeof CompaniesNewRoute
   '/contracts_/$typeId': typeof ContractsTypeIdRoute
+  '/help-desk/bounced-cheque': typeof HelpDeskBouncedChequeRoute
   '/help-desk/cyber-report': typeof HelpDeskCyberReportRoute
+  '/help-desk/legal-notice': typeof HelpDeskLegalNoticeRoute
   '/help-desk/police-encounter': typeof HelpDeskPoliceEncounterRoute
+  '/help-desk/recover-money': typeof HelpDeskRecoverMoneyRoute
   '/help-desk/succession': typeof HelpDeskSuccessionRoute
   '/help-desk/tenant-protection': typeof HelpDeskTenantProtectionRoute
   '/help-desk/utility-dispute': typeof HelpDeskUtilityDisputeRoute
@@ -422,8 +449,11 @@ export interface FileRouteTypes {
     | '/companies/$companyId'
     | '/companies/new'
     | '/contracts/$typeId'
+    | '/help-desk/bounced-cheque'
     | '/help-desk/cyber-report'
+    | '/help-desk/legal-notice'
     | '/help-desk/police-encounter'
+    | '/help-desk/recover-money'
     | '/help-desk/succession'
     | '/help-desk/tenant-protection'
     | '/help-desk/utility-dispute'
@@ -465,8 +495,11 @@ export interface FileRouteTypes {
     | '/companies/$companyId'
     | '/companies/new'
     | '/contracts/$typeId'
+    | '/help-desk/bounced-cheque'
     | '/help-desk/cyber-report'
+    | '/help-desk/legal-notice'
     | '/help-desk/police-encounter'
+    | '/help-desk/recover-money'
     | '/help-desk/succession'
     | '/help-desk/tenant-protection'
     | '/help-desk/utility-dispute'
@@ -508,8 +541,11 @@ export interface FileRouteTypes {
     | '/companies/$companyId'
     | '/companies/new'
     | '/contracts_/$typeId'
+    | '/help-desk/bounced-cheque'
     | '/help-desk/cyber-report'
+    | '/help-desk/legal-notice'
     | '/help-desk/police-encounter'
+    | '/help-desk/recover-money'
     | '/help-desk/succession'
     | '/help-desk/tenant-protection'
     | '/help-desk/utility-dispute'
@@ -552,8 +588,11 @@ export interface RootRouteChildren {
   CompaniesCompanyIdRoute: typeof CompaniesCompanyIdRoute
   CompaniesNewRoute: typeof CompaniesNewRoute
   ContractsTypeIdRoute: typeof ContractsTypeIdRoute
+  HelpDeskBouncedChequeRoute: typeof HelpDeskBouncedChequeRoute
   HelpDeskCyberReportRoute: typeof HelpDeskCyberReportRoute
+  HelpDeskLegalNoticeRoute: typeof HelpDeskLegalNoticeRoute
   HelpDeskPoliceEncounterRoute: typeof HelpDeskPoliceEncounterRoute
+  HelpDeskRecoverMoneyRoute: typeof HelpDeskRecoverMoneyRoute
   HelpDeskSuccessionRoute: typeof HelpDeskSuccessionRoute
   HelpDeskTenantProtectionRoute: typeof HelpDeskTenantProtectionRoute
   HelpDeskUtilityDisputeRoute: typeof HelpDeskUtilityDisputeRoute
@@ -791,6 +830,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HelpDeskIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help-desk/bounced-cheque': {
+      id: '/help-desk/bounced-cheque'
+      path: '/help-desk/bounced-cheque'
+      fullPath: '/help-desk/bounced-cheque'
+      preLoaderRoute: typeof HelpDeskBouncedChequeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/help-desk/cyber-report': {
       id: '/help-desk/cyber-report'
       path: '/help-desk/cyber-report'
@@ -798,11 +844,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HelpDeskCyberReportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help-desk/legal-notice': {
+      id: '/help-desk/legal-notice'
+      path: '/help-desk/legal-notice'
+      fullPath: '/help-desk/legal-notice'
+      preLoaderRoute: typeof HelpDeskLegalNoticeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/help-desk/police-encounter': {
       id: '/help-desk/police-encounter'
       path: '/help-desk/police-encounter'
       fullPath: '/help-desk/police-encounter'
       preLoaderRoute: typeof HelpDeskPoliceEncounterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help-desk/recover-money': {
+      id: '/help-desk/recover-money'
+      path: '/help-desk/recover-money'
+      fullPath: '/help-desk/recover-money'
+      preLoaderRoute: typeof HelpDeskRecoverMoneyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/help-desk/succession': {
@@ -888,8 +948,11 @@ const rootRouteChildren: RootRouteChildren = {
   CompaniesCompanyIdRoute: CompaniesCompanyIdRoute,
   CompaniesNewRoute: CompaniesNewRoute,
   ContractsTypeIdRoute: ContractsTypeIdRoute,
+  HelpDeskBouncedChequeRoute: HelpDeskBouncedChequeRoute,
   HelpDeskCyberReportRoute: HelpDeskCyberReportRoute,
+  HelpDeskLegalNoticeRoute: HelpDeskLegalNoticeRoute,
   HelpDeskPoliceEncounterRoute: HelpDeskPoliceEncounterRoute,
+  HelpDeskRecoverMoneyRoute: HelpDeskRecoverMoneyRoute,
   HelpDeskSuccessionRoute: HelpDeskSuccessionRoute,
   HelpDeskTenantProtectionRoute: HelpDeskTenantProtectionRoute,
   HelpDeskUtilityDisputeRoute: HelpDeskUtilityDisputeRoute,
