@@ -2,23 +2,20 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   BookOpen,
-  Briefcase,
   CalendarClock,
-  Compass,
   FileSpreadsheet,
   FileText,
-  HeartHandshake,
   Landmark,
   LifeBuoy,
   MessageCircle,
   Rocket,
   Scale,
-  ShieldCheck,
-  Sparkles,
   Users,
 } from "lucide-react";
 import { GlassNavbar } from "@/components/marketing/GlassNavbar";
 import { HeroSection } from "@/components/marketing/HeroSection";
+import { PillarsSection } from "@/components/marketing/PillarsSection";
+import { PlatformSection } from "@/components/marketing/PlatformSection";
 import { AttorneyConsultCard } from "@/components/marketing/AttorneyConsultCard";
 import { FaqSection } from "@/components/marketing/FaqSection";
 import { FAQS } from "@/lib/marketing/faqs";
@@ -57,37 +54,6 @@ const FAQ_JSON_LD = {
     acceptedAnswer: { "@type": "Answer", text: f.answer },
   })),
 };
-
-const ARCHITECTURE = [
-  {
-    key: "START",
-    title: "Start",
-    body: "Register a company and prepare your SECP filing pack.",
-    icon: Rocket,
-    to: "/incorporation",
-  },
-  {
-    key: "RUN",
-    title: "Run",
-    body: "Manage contracts, filings, directors and compliance.",
-    icon: Compass,
-    to: "/business",
-  },
-  {
-    key: "PROTECT",
-    title: "Protect",
-    body: "Create agreements, notices and business documents.",
-    icon: ShieldCheck,
-    to: "/contracts",
-  },
-  {
-    key: "UNDERSTAND",
-    title: "Understand",
-    body: "Get preliminary legal guidance in English, Urdu and Roman Urdu.",
-    icon: Sparkles,
-    to: "/citizen",
-  },
-] as const;
 
 const PERSONAL_SERVICES = [
   {
@@ -155,23 +121,6 @@ const BUSINESS_SERVICES = [
   },
 ];
 
-const UNITS = [
-  {
-    to: "/personal",
-    title: "Personal",
-    tagline: "Free, always",
-    body: "AI legal chat, document drafts, a lawyer directory, and guided rights wizards — for individuals.",
-    icon: HeartHandshake,
-  },
-  {
-    to: "/business",
-    title: "Business",
-    tagline: "PKR 3,000/month per workspace",
-    body: "Company registration, SECP filings, contracts, and compliance tools — for companies.",
-    icon: Briefcase,
-  },
-];
-
 function Home() {
   return (
     <div className="marketing-surface min-h-screen bg-bg">
@@ -185,29 +134,66 @@ function Home() {
       />
       <GlassNavbar />
       <HeroSection />
+      <PillarsSection />
+      <PlatformSection />
 
-      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
         <p className="text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
-          One System, Four Jobs
+          Personal
         </p>
-        <h2 className="mt-3 text-center font-display text-3xl text-fg sm:text-4xl">
-          Everything a Pakistani business and its people need
+        <h2 className="mt-3 text-center font-display text-2xl text-fg sm:text-3xl md:text-4xl">
+          Free legal help
         </h2>
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {ARCHITECTURE.map((a) => {
-            const Icon = a.icon;
+        <div className="mt-10 grid gap-5 sm:grid-cols-2">
+          {PERSONAL_SERVICES.map((s) => {
+            const Icon = s.icon;
             return (
               <Link
-                key={a.key}
-                to={a.to}
-                className="group rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-sm transition-colors hover:border-accent"
+                key={s.to}
+                to={s.to}
+                className="group flex flex-col rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-md"
               >
-                <Icon className="size-6 text-accent" strokeWidth={1.75} />
-                <p className="mt-4 text-xs font-semibold tracking-[0.15em] text-muted uppercase">
-                  {a.key}
-                </p>
-                <h3 className="mt-1 font-display text-xl text-fg">{a.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{a.body}</p>
+                <span className="grid size-11 place-items-center rounded-[var(--radius-md)] bg-accent/10 text-accent">
+                  <Icon className="size-5" strokeWidth={1.75} />
+                </span>
+                <h3 className="mt-5 font-display text-lg text-fg">{s.title}</h3>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{s.body}</p>
+                <span className="mt-4 flex items-center gap-1 text-xs font-medium text-accent">
+                  Explore <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+
+        <p className="mx-auto mt-16 text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
+          Business
+        </p>
+        <h2 className="mt-3 text-center font-display text-2xl text-fg sm:text-3xl md:text-4xl">
+          The Corporate Suite
+        </h2>
+        <p className="mx-auto mt-3 flex max-w-xl items-center justify-center text-center text-sm text-muted">
+          <span className="rounded-full border border-border bg-surface px-3 py-1">
+            PKR 3,000/month per workspace —{" "}
+            <Link to="/billing" className="text-accent underline">
+              see billing
+            </Link>
+          </span>
+        </p>
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {BUSINESS_SERVICES.map((s) => {
+            const Icon = s.icon;
+            return (
+              <Link
+                key={s.to}
+                to={s.to}
+                className="group flex flex-col rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-md"
+              >
+                <span className="grid size-11 place-items-center rounded-[var(--radius-md)] bg-accent/10 text-accent">
+                  <Icon className="size-5" strokeWidth={1.75} />
+                </span>
+                <h3 className="mt-5 font-display text-lg text-fg">{s.title}</h3>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{s.body}</p>
                 <span className="mt-4 flex items-center gap-1 text-xs font-medium text-accent">
                   Explore <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
                 </span>
@@ -217,106 +203,24 @@ function Home() {
         </div>
       </section>
 
-      <section className="border-t border-border bg-surface/60 px-4 py-20 sm:px-6">
-        <div className="mx-auto max-w-5xl">
-          <p className="text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
-            Two Desks, One Platform
-          </p>
-          <h2 className="mt-3 text-center font-display text-3xl text-fg sm:text-4xl">
-            Where do you want to start?
-          </h2>
-
-          <div className="mt-12 grid gap-6 sm:grid-cols-2">
-            {UNITS.map((u) => {
-              const Icon = u.icon;
-              return (
-                <Link
-                  key={u.to}
-                  to={u.to}
-                  className="group rounded-[var(--radius-lg)] border border-border bg-bg p-8 shadow-sm transition-colors hover:border-accent"
-                >
-                  <Icon className="size-8 text-accent" strokeWidth={1.5} />
-                  <h3 className="mt-5 font-display text-2xl text-fg">{u.title}</h3>
-                  <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-accent">
-                    {u.tagline}
-                  </p>
-                  <p className="mt-3 text-sm leading-relaxed text-muted">{u.body}</p>
-                  <span className="mt-5 flex items-center gap-1 text-xs font-medium text-fg">
-                    Explore <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-        <p className="text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
-          Personal
-        </p>
-        <h2 className="mt-2 text-center font-display text-2xl text-fg">Free legal help</h2>
-        <div className="mt-8 grid gap-5 sm:grid-cols-2">
-          {PERSONAL_SERVICES.map((s) => {
-            const Icon = s.icon;
-            return (
-              <Link
-                key={s.to}
-                to={s.to}
-                className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-sm transition-colors hover:border-accent"
-              >
-                <Icon className="size-5 text-accent" strokeWidth={1.75} />
-                <h3 className="mt-4 font-display text-lg text-fg">{s.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{s.body}</p>
-              </Link>
-            );
-          })}
-        </div>
-
-        <p className="mx-auto mt-16 text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
-          Business
-        </p>
-        <h2 className="mt-2 text-center font-display text-2xl text-fg">The Corporate Suite</h2>
-        <p className="mx-auto mt-3 max-w-xl text-center text-sm text-muted">
-          PKR 3,000/month per workspace —{" "}
-          <Link to="/billing" className="text-accent underline">
-            see billing
-          </Link>
-          .
-        </p>
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {BUSINESS_SERVICES.map((s) => {
-            const Icon = s.icon;
-            return (
-              <Link
-                key={s.to}
-                to={s.to}
-                className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-sm transition-colors hover:border-accent"
-              >
-                <Icon className="size-5 text-accent" strokeWidth={1.75} />
-                <h3 className="mt-4 font-display text-lg text-fg">{s.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{s.body}</p>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="border-t border-border bg-surface/60 px-4 py-20 sm:px-6">
+      <section className="border-t border-border bg-surface/60 px-4 py-16 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-5xl">
           <p className="text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
             Need More Than a Template?
           </p>
-          <div className="mt-8 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <h2 className="mt-3 text-center font-display text-2xl text-fg sm:text-3xl md:text-4xl">
+            Consult Counsel
+          </h2>
+          <div className="mt-10 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
             <AttorneyConsultCard />
-            <div className="rounded-[var(--radius-lg)] border border-border bg-bg p-6 shadow-sm">
+            <div className="flex flex-col justify-center rounded-[var(--radius-lg)] border border-border bg-bg p-6 shadow-sm">
               <p className="text-sm leading-relaxed text-muted">
                 Cap table terms, cross-border jurisdiction clauses, SECP disputes, share
                 restructuring, or a regulatory audit — some matters need a person, not a form.
               </p>
               <Link
                 to="/consult"
-                className="mt-5 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-primary px-6 text-sm font-semibold text-primary-fg hover:bg-accent"
+                className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-sm)] bg-primary px-6 text-sm font-semibold text-primary-fg shadow-sm transition-all hover:bg-accent hover:shadow-md sm:w-auto sm:justify-start"
               >
                 Request a Consultation
               </Link>
@@ -327,12 +231,13 @@ function Home() {
 
       <FaqSection />
 
-      <footer className="border-t border-border px-4 py-8 text-center text-xs text-muted sm:px-6">
-        <p>
+      <footer className="border-t border-border px-4 py-10 text-center text-xs text-muted sm:px-6">
+        <p className="font-display text-base text-fg">LegalPak</p>
+        <p className="mx-auto mt-3 max-w-xl leading-relaxed">
           LegalPak drafts packs for eZfile. SECP still receives the PIN-signed filing. Not a
           substitute for a licensed Pakistani advocate.
         </p>
-        <p className="mt-2 flex justify-center gap-3">
+        <p className="mt-4 flex flex-wrap justify-center gap-x-3 gap-y-1">
           <Link to="/privacy" className="underline hover:text-fg">
             Privacy Policy
           </Link>
