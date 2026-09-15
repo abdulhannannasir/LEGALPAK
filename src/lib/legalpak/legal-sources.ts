@@ -32,6 +32,10 @@ export const LEGAL_SOURCE_KEYS = [
   "citizen-offense-classification",
   "notice-489f",
   "notice-debt-recovery",
+  "compliance-financial-statements",
+  "compliance-form-a",
+  "compliance-form-9",
+  "compliance-income-tax",
 ] as const;
 
 export type LegalSourceKey = (typeof LEGAL_SOURCE_KEYS)[number];
@@ -67,5 +71,26 @@ export const LEGAL_SOURCES: Record<LegalSourceKey, LegalSource> = {
   "notice-debt-recovery": {
     label: "Commercial debt recovery notice period",
     basis: "Negotiable Instruments Act, 1881",
+  },
+  "compliance-financial-statements": {
+    label: "Financial statements filing (SECP)",
+    basis: "Companies Act, 2017 — ss. 223, 227, 232, 233",
+    sourceUrl: "https://www.secp.gov.pk/",
+  },
+  "compliance-form-a": {
+    label: "Form A / annual return (SECP)",
+    basis: "Companies Act, 2017 — s. 130; Companies Regulations, 2024",
+    sourceUrl: "https://www.secp.gov.pk/",
+  },
+  "compliance-form-9": {
+    label: "Form 9 / director change (SECP)",
+    basis:
+      "Companies Regulations, 2024 — Induction, Cessation and change in particulars of directors and officers",
+    sourceUrl: "https://www.secp.gov.pk/",
+  },
+  "compliance-income-tax": {
+    label: "Income tax return (FBR)",
+    basis: "Income Tax Ordinance, 2001",
+    sourceUrl: "https://www.fbr.gov.pk/",
   },
 };

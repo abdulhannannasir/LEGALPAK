@@ -26,6 +26,14 @@ import { ActivityTimeline } from "@/components/activity-timeline";
 import { DocumentVault } from "@/components/document-vault";
 import { ClientApproval } from "@/components/client-approval";
 import { RequestAttorneyReview } from "@/components/request-attorney-review";
+import { ComplianceSummaryCard } from "@/components/compliance/summary-card";
+import { ComplianceNotes } from "@/components/compliance/notes";
+import { ComplianceReminders } from "@/components/compliance/reminders";
+import {
+  isComplianceMatterType,
+  markComplianceCompleteFn,
+  reopenComplianceItemFn,
+} from "@/lib/legalpak/compliance";
 import {
   classifyAccounts,
   generateAccountsPack,
@@ -87,6 +95,7 @@ function MatterBody() {
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [transitioning, setTransitioning] = useState(false);
+  const [complianceBusy, setComplianceBusy] = useState(false);
 
   async function refresh() {
     setLoading(true);
@@ -122,6 +131,34 @@ function MatterBody() {
     }
   }
 
+  async function markComplete() {
+    if (!matter) return;
+    setComplianceBusy(true);
+    try {
+      const updated = await markComplianceCompleteFn({ data: matter.id });
+      setMatter((m) => (m ? { ...m, status: updated.status } : m));
+      toast.success("Marked complete");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not mark complete");
+    } finally {
+      setComplianceBusy(false);
+    }
+  }
+
+  async function reopenCompliance() {
+    if (!matter) return;
+    setComplianceBusy(true);
+    try {
+      const updated = await reopenComplianceItemFn({ data: matter.id });
+      setMatter((m) => (m ? { ...m, status: updated.status } : m));
+      toast.success("Reopened");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not reopen");
+    } finally {
+      setComplianceBusy(false);
+    }
+  }
+
   if (loading) return null;
   if (!matter || !company) return <p className="text-sm text-muted">Matter not found.</p>;
 
@@ -138,6 +175,15 @@ function MatterBody() {
         <h1 className="mt-1 font-display text-3xl">{matter.title}</h1>
         <p className="mt-1 text-sm text-muted">{MATTER_TYPE_LABEL[matter.type]}</p>
       </div>
+
+      {isComplianceMatterType(matter.type) && (
+        <ComplianceSummaryCard
+          item={matter}
+          onMarkComplete={markComplete}
+          onReopen={reopenCompliance}
+          busy={complianceBusy}
+        />
+      )}
 
       {matter.type !== "CONTRACT" && (
         <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5">
@@ -172,6 +218,12 @@ function MatterBody() {
       {matter.type === "INCOME_TAX_RETURN" && <IncomeTaxMatter matter={matter} company={company} />}
 
       <DocumentVault scope={{ type: "company", companyId: company.id, matterId: matter.id }} />
+      {isComplianceMatterType(matter.type) && (
+        <>
+          <ComplianceNotes matterId={matter.id} />
+          <ComplianceReminders matterId={matter.id} />
+        </>
+      )}
       <ClientApproval matterId={matter.id} />
       <RequestAttorneyReview
         workspaceId={matter.workspace_id}

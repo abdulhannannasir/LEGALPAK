@@ -41,6 +41,19 @@ export function isAfterISO(a: string, b: string): boolean {
   return da.getTime() > db.getTime();
 }
 
+/** Today's date as a UTC calendar-date string. */
+export function todayISO(): string {
+  return toISO(new Date());
+}
+
+/** Whole days from `a` to `b` (negative when `a` is after `b`), e.g. days remaining until a deadline. */
+export function diffDaysISO(a: string, b: string): number | null {
+  const da = parseISO(a);
+  const db = parseISO(b);
+  if (!da || !db) return null;
+  return Math.round((db.getTime() - da.getTime()) / 86_400_000);
+}
+
 export function formatLong(iso: string): string {
   const d = parseISO(iso);
   if (!d) return iso || "____________";

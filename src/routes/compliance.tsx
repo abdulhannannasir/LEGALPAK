@@ -2,13 +2,19 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { RequireSubscription } from "@/components/billing/RequireSubscription";
-import { AlertTriangle, CheckCircle2, Circle, Clock } from "lucide-react";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { listWorkspacesFn, type Workspace } from "@/lib/legalpak/workspaces";
-import { listWorkspaceMattersFn, type MatterWithCompany } from "@/lib/legalpak/matters";
-import { MATTER_TYPE_LABEL, STATUS_LABEL } from "@/lib/legalpak/workflow";
-import { formatDateLong } from "@/lib/legal/accounts";
+import {
+  deriveCompliance,
+  listComplianceItemsFn,
+  type ComplianceHealth,
+  type ComplianceItem,
+} from "@/lib/legalpak/compliance";
+import { Select } from "@/components/ui/field";
+import { ComplianceHealthTiles } from "@/components/compliance/health-tiles";
+import { ComplianceListView } from "@/components/compliance/list-view";
+import { ComplianceCalendarView } from "@/components/compliance/calendar-view";
 
 export const Route = createFileRoute("/compliance")({
   component: () => (
@@ -18,37 +24,30 @@ export const Route = createFileRoute("/compliance")({
   ),
   head: () => ({
     meta: [
-      { title: "Compliance calendar — LegalPak" },
+      { title: "Compliance center — LegalPak" },
       {
         name: "description",
         content:
-          "Every statutory deadline for your Pakistani company in one place — SECP, tax, and labour filings — with reminders before the clock runs out.",
+          "Every SECP and FBR compliance requirement for your Pakistani companies in one place — health status, a monthly calendar, and a full list — with notes, reminders and document attachments per item.",
       },
     ],
   }),
 });
 
-type Urgency = "overdue" | "soon" | "upcoming" | "none" | "done";
-
-function urgencyOf(m: MatterWithCompany): Urgency {
-  if (m.status === "closed") return "done";
-  if (!m.due_date) return "none";
-  const today = new Date().toISOString().slice(0, 10);
-  const soonCutoff = new Date();
-  soonCutoff.setDate(soonCutoff.getDate() + 7);
-  const soon = soonCutoff.toISOString().slice(0, 10);
-  if (m.due_date < today) return "overdue";
-  if (m.due_date <= soon) return "soon";
-  return "upcoming";
-}
-
-const URGENCY_STYLE: Record<Urgency, { label: string; badge: string; icon: typeof AlertTriangle }> = {
-  overdue: { label: "Overdue", badge: "border-danger bg-flag-high text-fg", icon: AlertTriangle },
-  soon: { label: "Due soon", badge: "border-warn bg-flag-med text-fg", icon: Clock },
-  upcoming: { label: "Upcoming", badge: "border-border bg-surface text-muted", icon: Circle },
-  none: { label: "No deadline set", badge: "border-border bg-surface text-muted", icon: Circle },
-  done: { label: "Closed", badge: "border-success bg-flag-low text-fg", icon: CheckCircle2 },
+const EMPTY_COUNTS: Record<ComplianceHealth, number> = {
+  overdue: 0,
+  due_soon: 0,
+  upcoming: 0,
+  unscheduled: 0,
+  completed: 0,
 };
+
+function healthRank(item: ComplianceItem): number {
+  const derived = deriveCompliance(item);
+  if (!derived) return 99;
+  const rank: Record<ComplianceHealth, number> = { overdue: 0, due_soon: 1, unscheduled: 2, upcoming: 3, completed: 4 };
+  return rank[derived.health];
+}
 
 function CompliancePage() {
   const { user, isPending } = useCurrentUserState();
@@ -59,7 +58,10 @@ function CompliancePage() {
 
 function ComplianceBody() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [matters, setMatters] = useState<MatterWithCompany[] | null>(null);
+  const [items, setItems] = useState<ComplianceItem[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [view, setView] = useState<"list" | "calendar">("list");
+  const [companyFilter, setCompanyFilter] = useState<string>("all");
 
   useEffect(() => {
     listWorkspacesFn()
@@ -67,35 +69,45 @@ function ComplianceBody() {
       .catch(() => setWorkspace(null));
   }, []);
 
-  useEffect(() => {
+  function loadItems() {
     if (!workspace) return;
-    listWorkspaceMattersFn({ data: workspace.id })
-      .then(setMatters)
-      .catch(() => toast.error("Could not load the compliance calendar"));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the workspace id changes
-  }, [workspace?.id]);
+    setLoadError(false);
+    listComplianceItemsFn({ data: workspace.id })
+      .then(setItems)
+      .catch(() => {
+        setLoadError(true);
+        toast.error("Could not load the compliance center");
+      });
+  }
+  useEffect(loadItems, [workspace?.id]);
 
   const counts = useMemo(() => {
-    const c = { overdue: 0, soon: 0, upcoming: 0, done: 0 };
-    for (const m of matters ?? []) {
-      const u = urgencyOf(m);
-      if (u === "overdue" || u === "soon" || u === "upcoming" || u === "done") c[u] += 1;
+    const c = { ...EMPTY_COUNTS };
+    for (const item of items ?? []) {
+      const derived = deriveCompliance(item);
+      if (derived) c[derived.health] += 1;
     }
     return c;
-  }, [matters]);
+  }, [items]);
 
-  const sorted = useMemo(() => {
-    if (!matters) return [];
-    const rank: Record<Urgency, number> = { overdue: 0, soon: 1, upcoming: 2, none: 3, done: 4 };
-    return [...matters].sort((a, b) => rank[urgencyOf(a)] - rank[urgencyOf(b)]);
-  }, [matters]);
+  const companies = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of items ?? []) map.set(item.company_id, item.company_name);
+    return [...map.entries()];
+  }, [items]);
 
-  if (workspace === null && matters === null) return null;
+  const filtered = useMemo(() => {
+    const rows = items ?? [];
+    const scoped = companyFilter === "all" ? rows : rows.filter((i) => i.company_id === companyFilter);
+    return [...scoped].sort((a, b) => healthRank(a) - healthRank(b));
+  }, [items, companyFilter]);
+
+  if (workspace === null && items === null) return null;
 
   if (!workspace) {
     return (
       <div className="space-y-2">
-        <h1 className="font-display text-3xl">Compliance calendar</h1>
+        <h1 className="font-display text-3xl">Compliance center</h1>
         <p className="text-sm text-muted">
           Create a workspace on the{" "}
           <Link to="/dashboard" className="underline">
@@ -111,77 +123,75 @@ function ComplianceBody() {
     <div className="space-y-8">
       <div>
         <p className="text-xs font-medium uppercase tracking-widest text-muted">{workspace.name}</p>
-        <h1 className="font-display text-3xl">Compliance calendar</h1>
+        <h1 className="font-display text-3xl">Compliance center</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
-          Every open matter across your companies, sorted by how soon it's due. Deadlines are recalculated
-          automatically from each matter's saved draft.
+          Every SECP and FBR requirement tracked across your companies — health, deadlines and paperwork in one
+          place. Deadlines are computed from each matter's saved draft using the same calculators the matter itself
+          uses, never invented here.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile label="Overdue" value={counts.overdue} tone="danger" />
-        <StatTile label="Due this week" value={counts.soon} tone="warn" />
-        <StatTile label="Upcoming" value={counts.upcoming} tone="muted" />
-        <StatTile label="Closed" value={counts.done} tone="success" />
+      <ComplianceHealthTiles counts={counts} />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setView("list")}
+            className={`rounded-full border px-3 py-1 text-xs font-medium ${
+              view === "list" ? "border-primary bg-primary text-primary-fg" : "border-border text-muted"
+            }`}
+          >
+            List
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("calendar")}
+            className={`rounded-full border px-3 py-1 text-xs font-medium ${
+              view === "calendar" ? "border-primary bg-primary text-primary-fg" : "border-border text-muted"
+            }`}
+          >
+            Calendar
+          </button>
+        </div>
+        {companies.length > 1 && (
+          <Select
+            aria-label="Filter by company"
+            value={companyFilter}
+            onChange={(e) => setCompanyFilter(e.target.value)}
+            className="w-auto"
+          >
+            <option value="all">All companies</option>
+            {companies.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </Select>
+        )}
       </div>
 
-      {matters === null ? (
-        <p className="text-sm text-muted">Loading…</p>
-      ) : sorted.length === 0 ? (
-        <p className="text-sm text-muted">No matters yet — create one from a company page.</p>
-      ) : (
-        <div className="space-y-2">
-          {sorted.map((m) => {
-            const u = urgencyOf(m);
-            const style = URGENCY_STYLE[u];
-            const Icon = style.icon;
-            return (
-              <Link
-                key={m.id}
-                to="/matters/$matterId"
-                params={{ matterId: m.id }}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 hover:border-accent"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{m.title}</p>
-                  <p className="text-xs text-muted">
-                    {m.company_name} · {MATTER_TYPE_LABEL[m.type]} · {STATUS_LABEL[m.status]}
-                  </p>
-                </div>
-                <span
-                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${style.badge}`}
-                >
-                  <Icon className="size-3.5" strokeWidth={2} />
-                  {m.due_date ? `${style.label} · ${formatDateLong(m.due_date)}` : style.label}
-                </span>
-              </Link>
-            );
-          })}
+      {items === null && loadError ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-[var(--radius-md)] border border-danger bg-flag-high px-4 py-3 text-sm text-danger">
+          <span>Could not load the compliance center.</span>
+          <button type="button" onClick={loadItems} className="font-medium underline">
+            Try again
+          </button>
         </div>
+      ) : items === null ? (
+        <p className="text-sm text-muted">Loading…</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-muted">
+          No compliance matters yet — create a Financial Statements, Form A, Form 9 or Income Tax matter from a
+          company page.
+        </p>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-muted">Nothing for this company.</p>
+      ) : view === "list" ? (
+        <ComplianceListView items={filtered} />
+      ) : (
+        <ComplianceCalendarView items={filtered} />
       )}
-    </div>
-  );
-}
-
-function StatTile({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: "danger" | "warn" | "muted" | "success";
-}) {
-  const toneClass = {
-    danger: "text-danger",
-    warn: "text-warn",
-    muted: "text-fg",
-    success: "text-success",
-  }[tone];
-  return (
-    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className={`mt-1 font-display text-3xl ${toneClass}`}>{value}</p>
     </div>
   );
 }

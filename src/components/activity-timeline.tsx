@@ -15,6 +15,10 @@ const ACTION_LABEL: Record<string, (m: Record<string, unknown>) => string> = {
   CLIENT_APPROVED: () => "Client approved",
   CLIENT_REJECTED: () => "Client rejected",
   CONTRACT_VERSION_SAVED: (m) => `Contract version v${m.version ?? "?"} saved${m.note ? `: ${m.note}` : ""}`,
+  MATTER_MARKED_COMPLETE: () => "Marked complete",
+  MATTER_REOPENED: () => "Reopened",
+  COMPLIANCE_NOTE_ADDED: () => "Note added",
+  COMPLIANCE_REMINDER_SET: (m) => `Reminder set${m.remindOn ? ` for ${m.remindOn}` : ""}`,
 };
 
 export function describeAuditRow(row: AuditLogRow): string {
