@@ -34,8 +34,15 @@ import {
 } from "@/lib/legal/accounts";
 import { formAAdvice, type FormAInput } from "@/lib/legal/form-a";
 import { form9Advice, type Form9Input } from "@/lib/legal/form9";
-import { CONTRACT_TYPES, contractPartyLabels, generateContract } from "@/lib/legal/contracts";
-import { CLAUSE_MODULES } from "@/lib/legal/clauses";
+import { generateContract } from "@/lib/legal/contracts";
+import {
+  ContractWorkspace,
+  normalizeContractDraft,
+  type ContractDraftState,
+} from "@/components/contracts/contract-workspace";
+import { ContractStatusStepper, CONTRACT_STATUS_LABEL } from "@/components/contracts/contract-status-stepper";
+import { ContractVersionHistory } from "@/components/contracts/contract-version-history";
+import type { ContractVersion } from "@/lib/legalpak/contracts";
 import {
   generateIncomeTaxMemo,
   summarizeIncomeTax,
@@ -106,7 +113,8 @@ function MatterBody() {
     try {
       const updated = await updateMatterStatusFn({ data: { matterId: matter.id, status } });
       setMatter((m) => (m ? { ...m, status: updated.status } : m));
-      toast.success(`Marked as ${STATUS_LABEL[status]}`);
+      const label = matter.type === "CONTRACT" ? (CONTRACT_STATUS_LABEL[status] ?? STATUS_LABEL[status]) : STATUS_LABEL[status];
+      toast.success(`Marked as ${label}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not change status");
     } finally {
@@ -131,32 +139,36 @@ function MatterBody() {
         <p className="mt-1 text-sm text-muted">{MATTER_TYPE_LABEL[matter.type]}</p>
       </div>
 
-      <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted">Status</p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-fg">
-            {STATUS_LABEL[matter.status]}
-          </span>
-          {nextStatuses(matter.status).map((s) => (
-            <Button
-              key={s}
-              type="button"
-              variant="secondary"
-              disabled={transitioning}
-              onClick={() => transition(s)}
-            >
-              Mark {STATUS_LABEL[s]}
-            </Button>
-          ))}
-        </div>
-      </section>
+      {matter.type !== "CONTRACT" && (
+        <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Status</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-fg">
+              {STATUS_LABEL[matter.status]}
+            </span>
+            {nextStatuses(matter.status).map((s) => (
+              <Button
+                key={s}
+                type="button"
+                variant="secondary"
+                disabled={transitioning}
+                onClick={() => transition(s)}
+              >
+                Mark {STATUS_LABEL[s]}
+              </Button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {matter.type === "FINANCIAL_STATEMENTS" && (
         <AccountsMatter matter={matter} company={company} />
       )}
       {matter.type === "FORM_A" && <FormAMatter matter={matter} company={company} />}
       {matter.type === "FORM_9" && <Form9Matter matter={matter} company={company} />}
-      {matter.type === "CONTRACT" && <ContractMatter matter={matter} />}
+      {matter.type === "CONTRACT" && (
+        <ContractMatter matter={matter} onAdvance={transition} transitioning={transitioning} />
+      )}
       {matter.type === "INCOME_TAX_RETURN" && <IncomeTaxMatter matter={matter} company={company} />}
 
       <DocumentVault scope={{ type: "company", companyId: company.id, matterId: matter.id }} />
@@ -407,84 +419,81 @@ function Form9Matter({ matter, company }: { matter: MatterWithData; company: Com
   );
 }
 
-function ContractMatter({ matter }: { matter: MatterWithData }) {
-  const saved = matter.data as {
-    id?: string;
-    a?: string;
-    b?: string;
-    city?: string;
-    extra?: string;
-    clauses?: string[];
-  };
-  const [id, setId] = useState(saved.id ?? "service");
-  const [a, setA] = useState(saved.a ?? "");
-  const [b, setB] = useState(saved.b ?? "");
-  const [city, setCity] = useState(saved.city ?? "Islamabad");
-  const [extra, setExtra] = useState(saved.extra ?? "");
-  const [clauses, setClauses] = useState<string[]>(saved.clauses ?? []);
-  const labels = contractPartyLabels(id);
-  const out = useMemo(
-    () => generateContract(id, a, b, city, extra, clauses),
-    [id, a, b, city, extra, clauses],
-  );
-  function toggleClause(clauseId: string) {
-    setClauses((c) => (c.includes(clauseId) ? c.filter((x) => x !== clauseId) : [...c, clauseId]));
+function ContractMatter({
+  matter,
+  onAdvance,
+  transitioning,
+}: {
+  matter: MatterWithData;
+  onAdvance: (status: MatterStatus) => void;
+  transitioning: boolean;
+}) {
+  // `contractTypeId` is the current field name; `id` is read for matters saved
+  // by the earlier, pre-library version of this page.
+  const saved = matter.data as Partial<ContractDraftState> & { contractTypeId?: string; id?: string };
+  const typeId = saved.contractTypeId ?? saved.id ?? "service";
+  const [state, setState] = useState<ContractDraftState>(() => normalizeContractDraft(saved));
+  const [saving, setSaving] = useState(false);
+  const readOnly = matter.status === "signed" || matter.status === "filed" || matter.status === "closed";
+
+  function onChange(updater: (s: ContractDraftState) => ContractDraftState) {
+    setState((s) => updater(s));
   }
+
+  async function save() {
+    setSaving(true);
+    try {
+      await updateMatterDataFn({
+        data: { matterId: matter.id, data: { contractTypeId: typeId, ...state } as Record<string, Json> },
+      });
+      toast.success("Draft saved");
+    } catch {
+      toast.error("Could not save draft");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function restoreVersion(version: ContractVersion) {
+    const restored = normalizeContractDraft(version.data as Partial<ContractDraftState>);
+    setState(restored);
+    await updateMatterDataFn({
+      data: { matterId: matter.id, data: { contractTypeId: typeId, ...restored } as Record<string, Json> },
+    });
+  }
+
+  const draftText = useMemo(
+    () => generateContract(typeId, state.a, state.b, state.city, state.extra, state.clauses),
+    [typeId, state],
+  );
+
   return (
-    <SplitScreen
-      form={
-        <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Type">
-              <Select value={id} onChange={(e) => setId(e.target.value)}>
-                {CONTRACT_TYPES.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.title}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="City / jurisdiction">
-              <Input value={city} onChange={(e) => setCity(e.target.value)} />
-            </Field>
-            <Field label={labels.a}>
-              <Input value={a} onChange={(e) => setA(e.target.value)} />
-            </Field>
-            <Field label={labels.b}>
-              <Input value={b} onChange={(e) => setB(e.target.value)} />
-            </Field>
-            <Field label="Scope / property / role" className="sm:col-span-2">
-              <Textarea value={extra} onChange={(e) => setExtra(e.target.value)} />
-            </Field>
-          </div>
-          <fieldset className="mt-5">
-            <legend className="text-xs font-medium uppercase tracking-wide text-muted">
-              Additional clauses (optional)
-            </legend>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              {CLAUSE_MODULES.map((m) => (
-                <label key={m.id} className="flex min-h-11 items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={clauses.includes(m.id)}
-                    onChange={() => toggleClause(m.id)}
-                  />
-                  {m.label}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <Button
-            type="button"
-            className="mt-4"
-            onClick={() => saveDraft(matter.id, { id, a, b, city, extra, clauses })}
-          >
-            Save draft
-          </Button>
-        </section>
-      }
-      preview={<PackOutput text={out} filename={`${id}-agreement.txt`} />}
-    />
+    <>
+      <ContractStatusStepper status={matter.status} onAdvance={onAdvance} busy={transitioning} />
+      <ContractWorkspace
+        typeId={typeId}
+        state={state}
+        onChange={onChange}
+        readOnly={readOnly}
+        actionsSlot={
+          !readOnly ? (
+            <Button type="button" onClick={save} disabled={saving}>
+              {saving ? "Saving…" : "Save draft"}
+            </Button>
+          ) : undefined
+        }
+        footerSlot={
+          <ContractVersionHistory
+            matterId={matter.id}
+            contractType={typeId}
+            currentData={{ contractTypeId: typeId, ...state }}
+            draftText={draftText}
+            onRestore={restoreVersion}
+            readOnly={readOnly}
+          />
+        }
+      />
+    </>
   );
 }
 

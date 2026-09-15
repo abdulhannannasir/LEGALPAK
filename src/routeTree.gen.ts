@@ -39,6 +39,7 @@ import { Route as CitizenDocumentsRouteImport } from './routes/citizen.documents
 import { Route as CitizenLawyersRouteImport } from './routes/citizen.lawyers'
 import { Route as CompaniesCompanyIdRouteImport } from './routes/companies.$companyId'
 import { Route as CompaniesNewRouteImport } from './routes/companies.new'
+import { Route as ContractsTypeIdRouteImport } from './routes/contracts_.$typeId'
 import { Route as HelpDeskIndexRouteImport } from './routes/help-desk.index'
 import { Route as HelpDeskCyberReportRouteImport } from './routes/help-desk.cyber-report'
 import { Route as HelpDeskPoliceEncounterRouteImport } from './routes/help-desk.police-encounter'
@@ -200,6 +201,11 @@ const CompaniesNewRoute = CompaniesNewRouteImport.update({
   path: '/companies/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContractsTypeIdRoute = ContractsTypeIdRouteImport.update({
+  id: '/contracts_/$typeId',
+  path: '/contracts/$typeId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HelpDeskIndexRoute = HelpDeskIndexRouteImport.update({
   id: '/help-desk/',
   path: '/help-desk/',
@@ -283,6 +289,7 @@ export interface FileRoutesByFullPath {
   '/citizen/lawyers': typeof CitizenLawyersRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/companies/new': typeof CompaniesNewRoute
+  '/contracts/$typeId': typeof ContractsTypeIdRoute
   '/help-desk/cyber-report': typeof HelpDeskCyberReportRoute
   '/help-desk/police-encounter': typeof HelpDeskPoliceEncounterRoute
   '/help-desk/succession': typeof HelpDeskSuccessionRoute
@@ -325,6 +332,7 @@ export interface FileRoutesByTo {
   '/citizen/lawyers': typeof CitizenLawyersRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/companies/new': typeof CompaniesNewRoute
+  '/contracts/$typeId': typeof ContractsTypeIdRoute
   '/help-desk/cyber-report': typeof HelpDeskCyberReportRoute
   '/help-desk/police-encounter': typeof HelpDeskPoliceEncounterRoute
   '/help-desk/succession': typeof HelpDeskSuccessionRoute
@@ -368,6 +376,7 @@ export interface FileRoutesById {
   '/citizen/lawyers': typeof CitizenLawyersRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/companies/new': typeof CompaniesNewRoute
+  '/contracts_/$typeId': typeof ContractsTypeIdRoute
   '/help-desk/cyber-report': typeof HelpDeskCyberReportRoute
   '/help-desk/police-encounter': typeof HelpDeskPoliceEncounterRoute
   '/help-desk/succession': typeof HelpDeskSuccessionRoute
@@ -412,6 +421,7 @@ export interface FileRouteTypes {
     | '/citizen/lawyers'
     | '/companies/$companyId'
     | '/companies/new'
+    | '/contracts/$typeId'
     | '/help-desk/cyber-report'
     | '/help-desk/police-encounter'
     | '/help-desk/succession'
@@ -454,6 +464,7 @@ export interface FileRouteTypes {
     | '/citizen/lawyers'
     | '/companies/$companyId'
     | '/companies/new'
+    | '/contracts/$typeId'
     | '/help-desk/cyber-report'
     | '/help-desk/police-encounter'
     | '/help-desk/succession'
@@ -496,6 +507,7 @@ export interface FileRouteTypes {
     | '/citizen/lawyers'
     | '/companies/$companyId'
     | '/companies/new'
+    | '/contracts_/$typeId'
     | '/help-desk/cyber-report'
     | '/help-desk/police-encounter'
     | '/help-desk/succession'
@@ -539,6 +551,7 @@ export interface RootRouteChildren {
   CitizenLawyersRoute: typeof CitizenLawyersRoute
   CompaniesCompanyIdRoute: typeof CompaniesCompanyIdRoute
   CompaniesNewRoute: typeof CompaniesNewRoute
+  ContractsTypeIdRoute: typeof ContractsTypeIdRoute
   HelpDeskCyberReportRoute: typeof HelpDeskCyberReportRoute
   HelpDeskPoliceEncounterRoute: typeof HelpDeskPoliceEncounterRoute
   HelpDeskSuccessionRoute: typeof HelpDeskSuccessionRoute
@@ -764,6 +777,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompaniesNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contracts_/$typeId': {
+      id: '/contracts_/$typeId'
+      path: '/contracts/$typeId'
+      fullPath: '/contracts/$typeId'
+      preLoaderRoute: typeof ContractsTypeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/help-desk/': {
       id: '/help-desk/'
       path: '/help-desk'
@@ -867,6 +887,7 @@ const rootRouteChildren: RootRouteChildren = {
   CitizenLawyersRoute: CitizenLawyersRoute,
   CompaniesCompanyIdRoute: CompaniesCompanyIdRoute,
   CompaniesNewRoute: CompaniesNewRoute,
+  ContractsTypeIdRoute: ContractsTypeIdRoute,
   HelpDeskCyberReportRoute: HelpDeskCyberReportRoute,
   HelpDeskPoliceEncounterRoute: HelpDeskPoliceEncounterRoute,
   HelpDeskSuccessionRoute: HelpDeskSuccessionRoute,
