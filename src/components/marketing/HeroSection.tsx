@@ -1,93 +1,69 @@
-import { lazy, Suspense, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
-import { ContractTablet } from "./ContractTablet";
+import { AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 
-// Three.js/R3F is a heavy client-only dependency — load it lazily and only
-// after mount, so it never ships in the SSR pass or blocks first paint.
-const BackgroundCanvas = lazy(() =>
-  import("./BackgroundCanvas").then((m) => ({ default: m.BackgroundCanvas })),
-);
-
-function useMounted() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  return mounted;
-}
+const TRUST_ITEMS = ["Built for Pakistan", "SECP", "FBR", "Commercial Law", "Contracts"];
 
 export function HeroSection() {
-  const mounted = useMounted();
-
   return (
-    <section className="relative overflow-hidden pt-36 pb-20 sm:pt-44">
-      {/* Ambient marble/vignette backdrop */}
-      <div
-        className="absolute inset-0 -z-20"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(212,175,55,0.08), transparent 60%), radial-gradient(ellipse 60% 50% at 85% 90%, rgba(63,95,138,0.12), transparent 60%), var(--lux-bg)",
-        }}
-      />
-      {mounted && (
-        <Suspense fallback={null}>
-          <BackgroundCanvas />
-        </Suspense>
-      )}
-
-      <div className="mx-auto grid max-w-6xl items-center gap-16 px-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="text-center lg:text-left"
-        >
-          <p className="text-xs font-medium tracking-[0.3em] text-[var(--lux-bronze)] uppercase">
-            Pakistan · Corporate &amp; Commercial
+    <section className="border-b border-border px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28">
+      <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="text-center lg:text-left">
+          <p className="text-xs font-semibold tracking-[0.2em] text-accent uppercase">
+            Pakistan's Legal &amp; Compliance Operating System
           </p>
-          <h1
-            className="mt-5 text-4xl leading-[1.1] text-[var(--lux-fg)] sm:text-5xl lg:text-6xl"
-            style={{ fontFamily: "var(--font-lux-serif)" }}
-          >
-            Empowering Growth{" "}
-            <span className="italic text-[var(--lux-gold)]">through Global Legal</span> Expertise.
+          <h1 className="mt-4 font-display text-4xl leading-[1.1] text-fg sm:text-5xl">
+            Start a company. Draft a contract.
+            <br className="hidden sm:block" /> Stay compliant. Understand your rights.
           </h1>
-          <p className="mx-auto mt-6 max-w-lg text-sm leading-relaxed text-[var(--lux-muted)] lg:mx-0">
-            SECP filings, commercial contracts, and bespoke corporate counsel — drafted with the
-            rigour of a private client desk.
+          <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-muted lg:mx-0">
+            One system for SECP incorporation, commercial contracts, statutory compliance, and
+            plain-language legal guidance — built specifically for Pakistani businesses and
+            citizens.
           </p>
-          <div className="mt-9 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
             <Link
-              to="/dashboard"
-              className="rounded-full border border-[var(--lux-border-strong)] px-7 py-3 text-xs font-medium tracking-widest text-[var(--lux-fg)] uppercase transition-colors hover:border-[var(--lux-gold)] hover:text-[var(--lux-gold)]"
+              to="/business"
+              className="inline-flex min-h-12 items-center rounded-[var(--radius-sm)] bg-primary px-6 text-sm font-semibold text-primary-fg hover:bg-accent"
             >
-              Explore Services
+              Start a Business
             </Link>
             <Link
-              to="/consult"
-              className="rounded-full bg-[var(--lux-gold)] px-7 py-3 text-xs font-medium tracking-widest text-black uppercase transition-opacity hover:opacity-90"
+              to="/personal"
+              className="inline-flex min-h-12 items-center rounded-[var(--radius-sm)] border border-border bg-surface px-6 text-sm font-semibold text-fg hover:border-accent"
             >
-              Request Consultation
+              Explore Legal Tools
             </Link>
           </div>
-        </motion.div>
+          <div className="mx-auto mt-9 flex max-w-lg flex-wrap items-center justify-center gap-x-5 gap-y-2 lg:mx-0 lg:justify-start">
+            {TRUST_ITEMS.map((item, i) => (
+              <span key={item} className="flex items-center gap-2 text-xs font-medium text-muted">
+                {i > 0 && <span className="text-border">•</span>}
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-        >
-          <ContractTablet />
-        </motion.div>
+        <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Compliance Health</p>
+          <p className="mt-1 font-display text-4xl text-fg">82/100</p>
+          <p className="mt-1 text-xs text-muted">Illustrative — based on your own filings once connected</p>
+          <div className="mt-5 space-y-2.5 border-t border-border pt-5">
+            <div className="flex items-center gap-2.5 text-sm">
+              <AlertTriangle className="size-4 shrink-0 text-danger" strokeWidth={1.75} />
+              <span className="text-fg">Form A annual return — overdue</span>
+            </div>
+            <div className="flex items-center gap-2.5 text-sm">
+              <Clock className="size-4 shrink-0 text-warn" strokeWidth={1.75} />
+              <span className="text-fg">NDA renewal — due in 6 days</span>
+            </div>
+            <div className="flex items-center gap-2.5 text-sm">
+              <CheckCircle2 className="size-4 shrink-0 text-success" strokeWidth={1.75} />
+              <span className="text-fg">Financial statements — filed</span>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <motion.div
-        className="absolute inset-x-0 bottom-6 flex justify-center"
-        animate={{ y: [0, 8, 0] }}
-        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <ChevronDown className="size-5 text-[var(--lux-gold)]" strokeWidth={1.5} />
-      </motion.div>
     </section>
   );
 }

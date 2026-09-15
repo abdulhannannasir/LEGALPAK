@@ -1,7 +1,7 @@
 /**
  * Marketing pages (homepage, consult, login, signup) render their own
- * full-bleed dark luxury layout instead of the functional app chrome — see
- * AppShell and src/components/marketing/*. Matching is exact, not
+ * full-bleed layout with GlassNavbar instead of the functional app chrome —
+ * see AppShell and src/components/marketing/*. Matching is exact, not
  * prefix-based: "/consult/does-not-exist" is a functional-app 404, not a
  * marketing page.
  */

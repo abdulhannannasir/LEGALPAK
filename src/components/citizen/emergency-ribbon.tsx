@@ -1,4 +1,4 @@
-import { PhoneCall } from "lucide-react";
+import { PhoneCall, ShieldAlert } from "lucide-react";
 import { EMERGENCY_CONTACTS } from "@/lib/citizen/help-desk";
 
 /**
@@ -25,6 +25,11 @@ export function EmergencyRibbon() {
           </a>
         ))}
       </div>
+      <p className="mt-1.5 flex items-center gap-1 text-[11px] text-danger/80">
+        <ShieldAlert className="size-3 shrink-0" strokeWidth={2} />
+        Publicly listed government numbers — source verification required before relying on them
+        in an emergency; if in doubt, dial 15 (Police).
+      </p>
     </div>
   );
 }

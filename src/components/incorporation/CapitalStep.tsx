@@ -1,5 +1,6 @@
 import { Field, Input } from "@/components/ui/field";
 import { estimateFees, pkr } from "@/lib/incorporation/secp-rules";
+import { LegalSourceNote } from "@/components/legal-source-note";
 
 export function CapitalStep({
   authorizedCapital,
@@ -86,6 +87,8 @@ export function CapitalStep({
           Indicative only — confirm the exact amount on eZfile's own fee calculator before payment.
         </p>
       </div>
+
+      <LegalSourceNote sourceKey="secp-incorporation-fees" />
     </section>
   );
 }

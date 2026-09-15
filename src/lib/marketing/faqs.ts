@@ -62,4 +62,14 @@ export const FAQS: FaqItem[] = [
     answer:
       "It's a manual transfer, not an automated checkout — we don't have a payment-gateway integration with EasyPaisa (that requires a registered merchant account, which we don't have set up yet). You send PKR 3,000 to the EasyPaisa number shown on the billing page from your own EasyPaisa app, then submit the transaction id there. We verify the transfer landed and activate your subscription, usually within a business day. We never ask for your EasyPaisa PIN or card details.",
   },
+  {
+    question: "How is my company data stored?",
+    answer:
+      "Company, matter, and compliance records you save while signed in live in our Postgres database, scoped strictly to your workspace — no other workspace can query or see them. Uploaded files (CNIC scans, resolutions, PDFs) are stored as private objects in Vercel Blob storage, referenced by your workspace's records only. Browser-only drafts (the Incorporation wizard before you sign in, Citizen document drafts) stay in your own browser and are never sent to our servers until you choose to save them. Citizen Legal Help chat messages are stored against a session token so your conversation can continue, not tied to a public profile.",
+  },
+  {
+    question: "How do I delete my data?",
+    answer:
+      "There's no self-serve \"delete my account\" button yet. To have your workspace, company records, documents, or citizen chat history deleted, contact us and we'll remove them manually. We'll add self-serve deletion as the product matures.",
+  },
 ];

@@ -159,7 +159,7 @@ function MatterBody() {
       {matter.type === "CONTRACT" && <ContractMatter matter={matter} />}
       {matter.type === "INCOME_TAX_RETURN" && <IncomeTaxMatter matter={matter} company={company} />}
 
-      <DocumentVault companyId={company.id} matterId={matter.id} />
+      <DocumentVault scope={{ type: "company", companyId: company.id, matterId: matter.id }} />
       <ClientApproval matterId={matter.id} />
       <RequestAttorneyReview
         workspaceId={matter.workspace_id}

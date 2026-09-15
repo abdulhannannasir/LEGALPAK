@@ -1,36 +1,29 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { SignedIn, SignedOut } from "@/lib/auth/gates";
 
 const LINKS = [
-  { to: "/", label: "Global Desk" },
-  { to: "/tax-assistant", label: "Digital Markets" },
-  { to: "/compliance", label: "Governance Audit" },
-  { to: "/citizen", label: "Citizen Desk" },
-  { to: "/consult", label: "Private Counsel" },
+  { to: "/personal", label: "Personal" },
+  { to: "/business", label: "Business" },
+  { to: "/consult", label: "Consult Counsel" },
   { to: "/", hash: "faq", label: "FAQ" },
 ] as const;
 
 /**
- * Floating glassmorphic navbar for the marketing shell. Below `md` it
- * collapses into a bottom-sheet-style drawer instead of trying to cram four
- * wide-tracking labels into a phone-width bar.
+ * Top marketing nav — plain light chrome shared with the rest of the app's
+ * design system (no separate dark/glass theme). Mobile gets its own bottom
+ * sheet rather than a shrunk copy of the desktop links.
  */
 export function GlassNavbar() {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <header className="fixed inset-x-0 top-4 z-40 flex justify-center px-4">
-        <div className="flex w-full max-w-5xl items-center justify-between gap-4 rounded-full border border-white/10 bg-black/40 px-5 py-3 backdrop-blur-md">
-          <Link
-            to="/"
-            className="text-lg tracking-wide text-[var(--lux-fg)]"
-            style={{ fontFamily: "var(--font-lux-display)" }}
-          >
-            Legal<span className="text-[var(--lux-gold)]">Pak</span>
+      <header className="sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <Link to="/" className="font-display text-xl tracking-tight text-fg">
+            LegalPak
           </Link>
 
           <nav className="hidden items-center gap-7 md:flex">
@@ -39,7 +32,7 @@ export function GlassNavbar() {
                 key={l.label}
                 to={l.to}
                 hash={"hash" in l ? l.hash : undefined}
-                className="text-xs font-medium tracking-widest text-[var(--lux-muted)] uppercase transition-colors hover:text-[var(--lux-gold)]"
+                className="text-sm font-medium text-muted transition-colors hover:text-fg"
               >
                 {l.label}
               </Link>
@@ -50,91 +43,82 @@ export function GlassNavbar() {
             <SignedIn>
               <Link
                 to="/dashboard"
-                className="hidden rounded-full border border-[var(--lux-border-strong)] px-4 py-1.5 text-xs font-medium tracking-wide text-[var(--lux-gold)] transition-colors hover:bg-[var(--lux-gold)] hover:text-black sm:inline-block"
+                className="hidden min-h-9 items-center rounded-[var(--radius-sm)] bg-primary px-4 text-sm font-medium text-primary-fg hover:bg-accent sm:inline-flex"
               >
-                Enter Desk
+                Dashboard
               </Link>
             </SignedIn>
             <SignedOut>
               <Link
                 to="/login"
-                className="hidden rounded-full border border-[var(--lux-border-strong)] px-4 py-1.5 text-xs font-medium tracking-wide text-[var(--lux-gold)] transition-colors hover:bg-[var(--lux-gold)] hover:text-black sm:inline-block"
+                className="hidden text-sm font-medium text-fg underline underline-offset-4 sm:inline-block"
               >
-                Sign In
+                Sign in
+              </Link>
+              <Link
+                to="/signup"
+                className="hidden min-h-9 items-center rounded-[var(--radius-sm)] bg-primary px-4 text-sm font-medium text-primary-fg hover:bg-accent sm:inline-flex"
+              >
+                Get started
               </Link>
             </SignedOut>
             <button
               type="button"
               aria-label={open ? "Close menu" : "Open menu"}
               onClick={() => setOpen((v) => !v)}
-              className="grid h-9 w-9 place-items-center rounded-full border border-white/10 text-[var(--lux-fg)] md:hidden"
+              className="grid h-9 w-9 place-items-center rounded-[var(--radius-sm)] border border-border text-fg md:hidden"
             >
-              {open ? (
-                <X className="size-4" strokeWidth={1.75} />
-              ) : (
-                <Menu className="size-4" strokeWidth={1.75} />
-              )}
+              {open ? <X className="size-4" strokeWidth={1.75} /> : <Menu className="size-4" strokeWidth={1.75} />}
             </button>
           </div>
         </div>
-      </header>
 
-      <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
-            onClick={() => setOpen(false)}
-          >
-            <motion.nav
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 260 }}
-              className="absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-[var(--lux-border)] bg-[var(--lux-bg-raised)] p-6 pb-10"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-white/15" />
-              <ul className="space-y-1">
-                {LINKS.map((l) => (
-                  <li key={l.label}>
-                    <Link
-                      to={l.to}
-                      hash={"hash" in l ? l.hash : undefined}
-                      onClick={() => setOpen(false)}
-                      className="flex min-h-12 items-center text-sm font-medium tracking-widest text-[var(--lux-fg)] uppercase"
-                    >
-                      {l.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-4 border-t border-white/10 pt-4">
-                <SignedIn>
+          <nav className="border-t border-border bg-surface px-4 py-3 md:hidden">
+            <ul className="space-y-1">
+              {LINKS.map((l) => (
+                <li key={l.label}>
                   <Link
-                    to="/dashboard"
+                    to={l.to}
+                    hash={"hash" in l ? l.hash : undefined}
                     onClick={() => setOpen(false)}
-                    className="flex min-h-12 items-center justify-center rounded-full border border-[var(--lux-border-strong)] text-sm font-medium text-[var(--lux-gold)]"
+                    className="flex min-h-11 items-center text-sm font-medium text-fg"
                   >
-                    Enter Desk
+                    {l.label}
                   </Link>
-                </SignedIn>
-                <SignedOut>
-                  <Link
-                    to="/login"
-                    onClick={() => setOpen(false)}
-                    className="flex min-h-12 items-center justify-center rounded-full border border-[var(--lux-border-strong)] text-sm font-medium text-[var(--lux-gold)]"
-                  >
-                    Sign In
-                  </Link>
-                </SignedOut>
-              </div>
-            </motion.nav>
-          </motion.div>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-3 flex gap-2 border-t border-border pt-3">
+              <SignedIn>
+                <Link
+                  to="/dashboard"
+                  onClick={() => setOpen(false)}
+                  className="flex min-h-11 flex-1 items-center justify-center rounded-[var(--radius-sm)] bg-primary text-sm font-medium text-primary-fg"
+                >
+                  Dashboard
+                </Link>
+              </SignedIn>
+              <SignedOut>
+                <Link
+                  to="/login"
+                  onClick={() => setOpen(false)}
+                  className="flex min-h-11 flex-1 items-center justify-center rounded-[var(--radius-sm)] border border-border text-sm font-medium text-fg"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/signup"
+                  onClick={() => setOpen(false)}
+                  className="flex min-h-11 flex-1 items-center justify-center rounded-[var(--radius-sm)] bg-primary text-sm font-medium text-primary-fg"
+                >
+                  Get started
+                </Link>
+              </SignedOut>
+            </div>
+          </nav>
         )}
-      </AnimatePresence>
+      </header>
     </>
   );
 }

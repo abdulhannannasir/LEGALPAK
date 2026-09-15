@@ -6,6 +6,7 @@ import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { PackOutput } from "@/components/pack-output";
+import { LegalSourceNote } from "@/components/legal-source-note";
 import { SplitScreen } from "@/components/split-screen";
 import { usePersistedState } from "@/lib/use-persisted-state";
 import { createId } from "@/lib/legalpak/id";
@@ -284,7 +285,10 @@ function NoticesPage() {
         }
         preview={
           out ? (
-            <PackOutput text={out} filename={is489F ? "489f-notice.txt" : "debt-recovery-notice.txt"} />
+            <div className="space-y-3">
+              <PackOutput text={out} filename={is489F ? "489f-notice.txt" : "debt-recovery-notice.txt"} />
+              <LegalSourceNote sourceKey={is489F ? "notice-489f" : "notice-debt-recovery"} />
+            </div>
           ) : (
             <section className="rounded-[var(--radius-lg)] border border-dashed border-border p-8 text-center text-sm text-muted">
               Fill in the debtor and amount to generate the notice.

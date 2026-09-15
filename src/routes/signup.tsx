@@ -45,23 +45,16 @@ function SignupPage() {
   }
 
   return (
-    <div className="luxury flex min-h-screen flex-col">
+    <div className="marketing-surface flex min-h-screen flex-col bg-bg">
       <GlassNavbar />
-      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center space-y-6 px-6 pt-32 pb-24">
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center space-y-6 px-6 py-16">
         <div>
-          <p className="text-xs font-medium tracking-[0.3em] text-[var(--lux-bronze)] uppercase">
-            LegalPak Workspace
-          </p>
-          <h1
-            className="mt-2 text-3xl text-[var(--lux-fg)]"
-            style={{ fontFamily: "var(--font-lux-serif)" }}
-          >
-            Create your account
-          </h1>
+          <p className="text-xs font-semibold tracking-[0.2em] text-accent uppercase">LegalPak Workspace</p>
+          <h1 className="mt-2 font-display text-3xl text-fg">Create your account</h1>
         </div>
         <form
           onSubmit={submit}
-          className="space-y-4 rounded-2xl border border-[var(--lux-border)] bg-white/[0.03] p-5 backdrop-blur-md"
+          className="space-y-4 rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-sm"
         >
           <Field label="Full name">
             <Input required value={name} onChange={(e) => setName(e.target.value)} />
@@ -82,9 +75,9 @@ function SignupPage() {
             {submitting ? "Creating…" : "Create account"}
           </Button>
         </form>
-        <p className="text-center text-sm text-[var(--lux-muted)]">
+        <p className="text-center text-sm text-muted">
           Already have a workspace?{" "}
-          <Link to="/login" className="font-medium text-[var(--lux-gold)] underline">
+          <Link to="/login" className="font-medium text-accent underline">
             Sign in
           </Link>
         </p>

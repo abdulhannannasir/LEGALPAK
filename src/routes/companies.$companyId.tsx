@@ -181,7 +181,7 @@ function CompanyBody() {
         )}
       </section>
 
-      <DocumentVault companyId={companyId} />
+      <DocumentVault scope={{ type: "company", companyId }} />
     </div>
   );
 }

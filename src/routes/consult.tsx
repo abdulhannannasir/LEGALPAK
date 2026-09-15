@@ -34,20 +34,13 @@ const DISCIPLINES = [
 
 function ConsultPage() {
   return (
-    <div className="luxury min-h-screen" data-build="cache-refresh-2">
+    <div className="marketing-surface min-h-screen bg-bg">
       <GlassNavbar />
-      <div className="mx-auto max-w-5xl space-y-8 px-6 pt-32 pb-24 sm:pt-40">
+      <div className="mx-auto max-w-5xl space-y-8 px-6 py-16">
         <div className="text-center sm:text-left">
-          <p className="text-xs font-medium uppercase tracking-[0.3em] text-[var(--lux-bronze)]">
-            Legal Advisory Desk
-          </p>
-          <h1
-            className="mt-3 text-3xl text-[var(--lux-fg)] sm:text-4xl"
-            style={{ fontFamily: "var(--font-lux-serif)" }}
-          >
-            Need bespoke counsel?
-          </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-[var(--lux-muted)] sm:mx-0">
+          <p className="text-xs font-semibold tracking-[0.2em] text-accent uppercase">Legal Advisory Desk</p>
+          <h1 className="mt-3 font-display text-3xl text-fg sm:text-4xl">Need bespoke counsel?</h1>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted sm:mx-0">
             Cap table terms, cross-border jurisdiction clauses, SECP disputes, share restructuring,
             or a regulatory audit — some matters need a person, not a form. Tell us what's going on
             and we'll get back to you.
@@ -60,19 +53,16 @@ function ConsultPage() {
             <AttorneyProfile />
             <div className="space-y-3">
               {DISCIPLINES.map((d) => (
-                <div
-                  key={d.title}
-                  className="rounded-2xl border border-[var(--lux-border)] bg-white/[0.03] p-4 backdrop-blur-md"
-                >
-                  <p className="text-sm font-medium text-[var(--lux-fg)]">{d.title}</p>
-                  <p className="mt-1 text-xs text-[var(--lux-muted)]">{d.body}</p>
+                <div key={d.title} className="rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-sm">
+                  <p className="text-sm font-medium text-fg">{d.title}</p>
+                  <p className="mt-1 text-xs text-muted">{d.body}</p>
                 </div>
               ))}
             </div>
           </div>
         </div>
       </div>
-      <footer className="border-t border-white/10 px-6 py-8 text-center text-xs text-[var(--lux-muted)]">
+      <footer className="border-t border-border px-6 py-8 text-center text-xs text-muted">
         LegalPak drafts packs for eZfile. SECP still receives the PIN-signed filing. Not a
         substitute for a licensed Pakistani advocate.
       </footer>

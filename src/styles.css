@@ -48,52 +48,10 @@
 }
 
 /*
- * Luxury dark theme — scoped to `.luxury` so the marketing shell (homepage,
- * consult page) can use these tokens without touching the light palette the
- * rest of the app (dashboard, forms, matter pages) relies on.
+ * Marketing surface tint — a subtle raised variant of the same base palette
+ * (not a separate theme) so the homepage/consult/auth pages read as part of
+ * one coherent product rather than a bolted-on microsite.
  */
-.luxury {
-  /* Bespoke tokens for the new marketing-only components (nav, hero, tablet). */
-  --lux-bg: #0a0b0d;
-  --lux-bg-raised: #121316;
-  --lux-surface: rgba(255, 255, 255, 0.04);
-  --lux-surface-strong: rgba(255, 255, 255, 0.07);
-  --lux-border: rgba(212, 175, 55, 0.22);
-  --lux-border-strong: rgba(212, 175, 55, 0.4);
-  --lux-gold: #d4af37;
-  --lux-bronze: #c5a880;
-  --lux-sapphire: #3f5f8a;
-  --lux-fg: #f2ede2;
-  --lux-muted: #a39c8f;
-  --font-lux-serif: "Playfair Display", "Cinzel", "Times New Roman", serif;
-  --font-lux-display: "Cinzel", "Playfair Display", serif;
-  --font-lux-sans: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
-
-  /*
-   * Override the base design tokens too, so existing shared primitives
-   * (Button, Field/Input/Textarea, AttorneyProfile, ConsultationForm) render
-   * correctly in dark glass automatically when nested inside `.luxury` —
-   * no changes needed to those shared components themselves.
-   */
-  --color-bg: var(--lux-bg);
-  --color-surface: var(--lux-surface);
-  --color-fg: var(--lux-fg);
-  --color-muted: var(--lux-muted);
-  --color-primary: var(--lux-gold);
-  --color-primary-fg: #0a0b0d;
-  --color-accent: var(--lux-bronze);
-  --color-border: var(--lux-border);
-  --color-success: #7fd9a8;
-  --color-flag-low: rgba(127, 217, 168, 0.1);
-  --font-display: var(--font-lux-serif);
-  --font-sans: var(--font-lux-sans);
-
-  background: var(--lux-bg);
-  color: var(--lux-fg);
-  font-family: var(--font-lux-sans);
-}
-
-.luxury ::selection {
-  background: var(--lux-gold);
-  color: #0a0b0d;
+.marketing-surface {
+  --color-bg: #fbfaf8;
 }

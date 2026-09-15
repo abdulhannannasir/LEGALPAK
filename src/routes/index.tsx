@@ -1,19 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
+  ArrowRight,
   BookOpen,
+  Briefcase,
   CalendarClock,
+  Compass,
   FileSpreadsheet,
   FileText,
+  HeartHandshake,
   Landmark,
   LifeBuoy,
   MessageCircle,
   Rocket,
   Scale,
+  ShieldCheck,
+  Sparkles,
   Users,
 } from "lucide-react";
 import { GlassNavbar } from "@/components/marketing/GlassNavbar";
 import { HeroSection } from "@/components/marketing/HeroSection";
-import { LuxuryAttorneyCard } from "@/components/marketing/LuxuryAttorneyCard";
+import { AttorneyConsultCard } from "@/components/marketing/AttorneyConsultCard";
 import { FaqSection } from "@/components/marketing/FaqSection";
 import { FAQS } from "@/lib/marketing/faqs";
 
@@ -21,11 +27,11 @@ export const Route = createFileRoute("/")({
   component: Home,
   head: () => ({
     meta: [
-      { title: "LegalPak — SECP Company Registration & Pakistan Corporate Compliance Desk" },
+      { title: "LegalPak — Pakistan's Legal & Compliance Operating System" },
       {
         name: "description",
         content:
-          "Register a company with SECP, file Form A and Form 9, draft contracts and legal notices, and get free citizen legal help in English, Roman Urdu, or Urdu — all in one Pakistan legal-tech desk.",
+          "Start a company, draft a contract, stay compliant, and understand your rights — LegalPak is Pakistan's legal and compliance operating system for SECP filings, contracts, and citizen legal help.",
       },
     ],
   }),
@@ -37,7 +43,7 @@ const ORGANIZATION_JSON_LD = {
   name: "LegalPak",
   url: "https://legalpak.vercel.app",
   description:
-    "Pakistan's SECP compliance and legal drafting desk — company incorporation, Form A, Form 9, financial statements, contracts, legal notices, and free citizen legal help.",
+    "Pakistan's legal and compliance operating system — company incorporation, SECP filings, contracts, statutory compliance, and free citizen legal help.",
   areaServed: { "@type": "Country", name: "Pakistan" },
   availableLanguage: ["English", "Urdu"],
 };
@@ -52,7 +58,53 @@ const FAQ_JSON_LD = {
   })),
 };
 
-const SERVICES = [
+const ARCHITECTURE = [
+  {
+    key: "START",
+    title: "Start",
+    body: "Register a company and prepare your SECP filing pack.",
+    icon: Rocket,
+    to: "/incorporation",
+  },
+  {
+    key: "RUN",
+    title: "Run",
+    body: "Manage contracts, filings, directors and compliance.",
+    icon: Compass,
+    to: "/business",
+  },
+  {
+    key: "PROTECT",
+    title: "Protect",
+    body: "Create agreements, notices and business documents.",
+    icon: ShieldCheck,
+    to: "/contracts",
+  },
+  {
+    key: "UNDERSTAND",
+    title: "Understand",
+    body: "Get preliminary legal guidance in English, Urdu and Roman Urdu.",
+    icon: Sparkles,
+    to: "/citizen",
+  },
+] as const;
+
+const PERSONAL_SERVICES = [
+  {
+    to: "/citizen",
+    title: "Citizen Legal Help",
+    body: "Ask LegalPak in plain language — English, Roman Urdu, or Urdu — draft documents, and find a verified advocate.",
+    icon: MessageCircle,
+  },
+  {
+    to: "/help-desk",
+    title: "Help Desk & Rights Navigator",
+    body: "Guided wizards for utility overbilling, cyber harassment, eviction, police encounters, and inheritance, with emergency helplines on every page.",
+    icon: LifeBuoy,
+  },
+];
+
+const BUSINESS_SERVICES = [
   {
     to: "/incorporation",
     title: "Company Registration & eZfile Pre-Flight",
@@ -60,23 +112,9 @@ const SERVICES = [
     icon: Rocket,
   },
   {
-    to: "/citizen",
-    title: "Citizen Legal Help",
-    body: "Ask LegalPak AI in plain language — English, Roman Urdu, or Urdu — draft documents, and find a verified advocate.",
-    icon: MessageCircle,
-    free: true,
-  },
-  {
-    to: "/help-desk",
-    title: "Help Desk & Rights Navigator",
-    body: "Guided wizards for utility overbilling, cyber harassment, eviction, police encounters, and inheritance, with emergency helplines on every page.",
-    icon: LifeBuoy,
-    free: true,
-  },
-  {
     to: "/accounts",
     title: "Financial Statements",
-    body: "Classify audit vs SECP filing, 15- vs 30-day clocks, board resolution and directors’ report skeleton.",
+    body: "Classify audit vs SECP filing, 15- vs 30-day clocks, board resolution and directors' report skeleton.",
     icon: FileSpreadsheet,
   },
   {
@@ -117,9 +155,26 @@ const SERVICES = [
   },
 ];
 
+const UNITS = [
+  {
+    to: "/personal",
+    title: "Personal",
+    tagline: "Free, always",
+    body: "AI legal chat, document drafts, a lawyer directory, and guided rights wizards — for individuals.",
+    icon: HeartHandshake,
+  },
+  {
+    to: "/business",
+    title: "Business",
+    tagline: "PKR 3,000/month per workspace",
+    body: "Company registration, SECP filings, contracts, and compliance tools — for companies.",
+    icon: Briefcase,
+  },
+];
+
 function Home() {
   return (
-    <div className="luxury min-h-screen">
+    <div className="marketing-surface min-h-screen bg-bg">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION_JSON_LD) }}
@@ -131,89 +186,157 @@ function Home() {
       <GlassNavbar />
       <HeroSection />
 
-      <section className="mx-auto max-w-6xl px-6 py-24">
-        <p className="text-center text-xs font-medium tracking-[0.3em] text-[var(--lux-bronze)] uppercase">
-          The Practice
+      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+        <p className="text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
+          One System, Four Jobs
         </p>
-        <h2
-          className="mt-3 text-center text-3xl text-[var(--lux-fg)] sm:text-4xl"
-          style={{ fontFamily: "var(--font-lux-serif)" }}
-        >
-          A Desk for Every Filing
+        <h2 className="mt-3 text-center font-display text-3xl text-fg sm:text-4xl">
+          Everything a Pakistani business and its people need
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-center text-sm text-[var(--lux-muted)]">
-          Citizen Legal Help and the Help Desk are free, always. The Corporate Suite is PKR
-          3,000/month per workspace —{" "}
-          <Link to="/billing" className="text-[var(--lux-gold)] underline">
-            see billing
-          </Link>
-          .
-        </p>
-
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {SERVICES.map((s) => {
-            const Icon = s.icon;
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {ARCHITECTURE.map((a) => {
+            const Icon = a.icon;
             return (
               <Link
-                key={s.to}
-                to={s.to}
-                className="group relative overflow-hidden rounded-2xl border border-[var(--lux-border)] bg-white/[0.03] p-6 backdrop-blur-md transition-colors hover:border-[var(--lux-border-strong)]"
+                key={a.key}
+                to={a.to}
+                className="group rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-sm transition-colors hover:border-accent"
               >
-                <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[var(--lux-gold)]/0 via-transparent to-[var(--lux-sapphire)]/0 opacity-0 transition-opacity duration-500 group-hover:opacity-10" />
-                <div className="flex items-start justify-between">
-                  <Icon className="size-5 text-[var(--lux-gold)]" strokeWidth={1.5} />
-                  {"free" in s && s.free && (
-                    <span className="rounded-full border border-[var(--lux-gold)]/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--lux-gold)]">
-                      Free
-                    </span>
-                  )}
-                </div>
-                <h3
-                  className="mt-4 text-lg text-[var(--lux-fg)]"
-                  style={{ fontFamily: "var(--font-lux-serif)" }}
-                >
-                  {s.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--lux-muted)]">{s.body}</p>
+                <Icon className="size-6 text-accent" strokeWidth={1.75} />
+                <p className="mt-4 text-xs font-semibold tracking-[0.15em] text-muted uppercase">
+                  {a.key}
+                </p>
+                <h3 className="mt-1 font-display text-xl text-fg">{a.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{a.body}</p>
+                <span className="mt-4 flex items-center gap-1 text-xs font-medium text-accent">
+                  Explore <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                </span>
               </Link>
             );
           })}
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-6 pb-28">
-        <p className="text-center text-xs font-medium tracking-[0.3em] text-[var(--lux-bronze)] uppercase">
-          Need More Than a Template?
+      <section className="border-t border-border bg-surface/60 px-4 py-20 sm:px-6">
+        <div className="mx-auto max-w-5xl">
+          <p className="text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
+            Two Desks, One Platform
+          </p>
+          <h2 className="mt-3 text-center font-display text-3xl text-fg sm:text-4xl">
+            Where do you want to start?
+          </h2>
+
+          <div className="mt-12 grid gap-6 sm:grid-cols-2">
+            {UNITS.map((u) => {
+              const Icon = u.icon;
+              return (
+                <Link
+                  key={u.to}
+                  to={u.to}
+                  className="group rounded-[var(--radius-lg)] border border-border bg-bg p-8 shadow-sm transition-colors hover:border-accent"
+                >
+                  <Icon className="size-8 text-accent" strokeWidth={1.5} />
+                  <h3 className="mt-5 font-display text-2xl text-fg">{u.title}</h3>
+                  <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-accent">
+                    {u.tagline}
+                  </p>
+                  <p className="mt-3 text-sm leading-relaxed text-muted">{u.body}</p>
+                  <span className="mt-5 flex items-center gap-1 text-xs font-medium text-fg">
+                    Explore <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+        <p className="text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
+          Personal
         </p>
-        <div className="mt-8 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <LuxuryAttorneyCard />
-          <div className="rounded-2xl border border-[var(--lux-border)] bg-white/[0.03] p-6 backdrop-blur-md">
-            <p className="text-sm leading-relaxed text-[var(--lux-muted)]">
-              Cap table terms, cross-border jurisdiction clauses, SECP disputes, share
-              restructuring, or a regulatory audit — some matters need a person, not a form.
-            </p>
-            <Link
-              to="/consult"
-              className="mt-5 inline-flex min-h-11 items-center rounded-full bg-[var(--lux-gold)] px-6 text-xs font-medium tracking-widest text-black uppercase hover:opacity-90"
-            >
-              Request a Consultation
-            </Link>
+        <h2 className="mt-2 text-center font-display text-2xl text-fg">Free legal help</h2>
+        <div className="mt-8 grid gap-5 sm:grid-cols-2">
+          {PERSONAL_SERVICES.map((s) => {
+            const Icon = s.icon;
+            return (
+              <Link
+                key={s.to}
+                to={s.to}
+                className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-sm transition-colors hover:border-accent"
+              >
+                <Icon className="size-5 text-accent" strokeWidth={1.75} />
+                <h3 className="mt-4 font-display text-lg text-fg">{s.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{s.body}</p>
+              </Link>
+            );
+          })}
+        </div>
+
+        <p className="mx-auto mt-16 text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
+          Business
+        </p>
+        <h2 className="mt-2 text-center font-display text-2xl text-fg">The Corporate Suite</h2>
+        <p className="mx-auto mt-3 max-w-xl text-center text-sm text-muted">
+          PKR 3,000/month per workspace —{" "}
+          <Link to="/billing" className="text-accent underline">
+            see billing
+          </Link>
+          .
+        </p>
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {BUSINESS_SERVICES.map((s) => {
+            const Icon = s.icon;
+            return (
+              <Link
+                key={s.to}
+                to={s.to}
+                className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-sm transition-colors hover:border-accent"
+              >
+                <Icon className="size-5 text-accent" strokeWidth={1.75} />
+                <h3 className="mt-4 font-display text-lg text-fg">{s.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{s.body}</p>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="border-t border-border bg-surface/60 px-4 py-20 sm:px-6">
+        <div className="mx-auto max-w-5xl">
+          <p className="text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
+            Need More Than a Template?
+          </p>
+          <div className="mt-8 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+            <AttorneyConsultCard />
+            <div className="rounded-[var(--radius-lg)] border border-border bg-bg p-6 shadow-sm">
+              <p className="text-sm leading-relaxed text-muted">
+                Cap table terms, cross-border jurisdiction clauses, SECP disputes, share
+                restructuring, or a regulatory audit — some matters need a person, not a form.
+              </p>
+              <Link
+                to="/consult"
+                className="mt-5 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-primary px-6 text-sm font-semibold text-primary-fg hover:bg-accent"
+              >
+                Request a Consultation
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
       <FaqSection />
 
-      <footer className="border-t border-white/10 px-6 py-8 text-center text-xs text-[var(--lux-muted)]">
+      <footer className="border-t border-border px-4 py-8 text-center text-xs text-muted sm:px-6">
         <p>
           LegalPak drafts packs for eZfile. SECP still receives the PIN-signed filing. Not a
           substitute for a licensed Pakistani advocate.
         </p>
         <p className="mt-2 flex justify-center gap-3">
-          <Link to="/privacy" className="underline hover:text-[var(--lux-fg)]">
+          <Link to="/privacy" className="underline hover:text-fg">
             Privacy Policy
           </Link>
-          <Link to="/terms" className="underline hover:text-[var(--lux-fg)]">
+          <Link to="/terms" className="underline hover:text-fg">
             Terms of Service
           </Link>
         </p>

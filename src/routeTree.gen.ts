@@ -12,22 +12,26 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as BillingRouteImport } from './routes/billing'
+import { Route as BusinessRouteImport } from './routes/business'
 import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as ConsultRouteImport } from './routes/consult'
 import { Route as ConsultationsRouteImport } from './routes/consultations'
 import { Route as ContractsRouteImport } from './routes/contracts'
 import { Route as CorporateFilingsRouteImport } from './routes/corporate-filings'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as Form9RouteImport } from './routes/form-9'
 import { Route as FormARouteImport } from './routes/form-a'
 import { Route as GuideRouteImport } from './routes/guide'
 import { Route as IncorporationRouteImport } from './routes/incorporation'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as NoticesRouteImport } from './routes/notices'
+import { Route as PersonalRouteImport } from './routes/personal'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TaxAssistantRouteImport } from './routes/tax-assistant'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 import { Route as ApproveTokenRouteImport } from './routes/approve.$token'
 import { Route as CitizenIndexRouteImport } from './routes/citizen.index'
 import { Route as CitizenChatRouteImport } from './routes/citizen.chat'
@@ -61,6 +65,11 @@ const BillingRoute = BillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BusinessRoute = BusinessRouteImport.update({
+  id: '/business',
+  path: '/business',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ComplianceRoute = ComplianceRouteImport.update({
   id: '/compliance',
   path: '/compliance',
@@ -89,6 +98,11 @@ const CorporateFilingsRoute = CorporateFilingsRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocumentsRoute = DocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Form9Route = Form9RouteImport.update({
@@ -121,6 +135,11 @@ const NoticesRoute = NoticesRouteImport.update({
   path: '/notices',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PersonalRoute = PersonalRouteImport.update({
+  id: '/personal',
+  path: '/personal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -139,6 +158,11 @@ const TaxAssistantRoute = TaxAssistantRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminBillingRoute = AdminBillingRouteImport.update({
+  id: '/admin/billing',
+  path: '/admin/billing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApproveTokenRoute = ApproveTokenRouteImport.update({
@@ -233,22 +257,26 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
   '/billing': typeof BillingRoute
+  '/business': typeof BusinessRoute
   '/compliance': typeof ComplianceRoute
   '/consult': typeof ConsultRoute
   '/consultations': typeof ConsultationsRoute
   '/contracts': typeof ContractsRoute
   '/corporate-filings': typeof CorporateFilingsRoute
   '/dashboard': typeof DashboardRoute
+  '/documents': typeof DocumentsRoute
   '/form-9': typeof Form9Route
   '/form-a': typeof FormARoute
   '/guide': typeof GuideRoute
   '/incorporation': typeof IncorporationRoute
   '/login': typeof LoginRoute
   '/notices': typeof NoticesRoute
+  '/personal': typeof PersonalRoute
   '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
   '/tax-assistant': typeof TaxAssistantRoute
   '/terms': typeof TermsRoute
+  '/admin/billing': typeof AdminBillingRoute
   '/approve/$token': typeof ApproveTokenRoute
   '/citizen/chat': typeof CitizenChatRoute
   '/citizen/documents': typeof CitizenDocumentsRoute
@@ -271,22 +299,26 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
   '/billing': typeof BillingRoute
+  '/business': typeof BusinessRoute
   '/compliance': typeof ComplianceRoute
   '/consult': typeof ConsultRoute
   '/consultations': typeof ConsultationsRoute
   '/contracts': typeof ContractsRoute
   '/corporate-filings': typeof CorporateFilingsRoute
   '/dashboard': typeof DashboardRoute
+  '/documents': typeof DocumentsRoute
   '/form-9': typeof Form9Route
   '/form-a': typeof FormARoute
   '/guide': typeof GuideRoute
   '/incorporation': typeof IncorporationRoute
   '/login': typeof LoginRoute
   '/notices': typeof NoticesRoute
+  '/personal': typeof PersonalRoute
   '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
   '/tax-assistant': typeof TaxAssistantRoute
   '/terms': typeof TermsRoute
+  '/admin/billing': typeof AdminBillingRoute
   '/approve/$token': typeof ApproveTokenRoute
   '/citizen/chat': typeof CitizenChatRoute
   '/citizen/documents': typeof CitizenDocumentsRoute
@@ -310,22 +342,26 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
   '/billing': typeof BillingRoute
+  '/business': typeof BusinessRoute
   '/compliance': typeof ComplianceRoute
   '/consult': typeof ConsultRoute
   '/consultations': typeof ConsultationsRoute
   '/contracts': typeof ContractsRoute
   '/corporate-filings': typeof CorporateFilingsRoute
   '/dashboard': typeof DashboardRoute
+  '/documents': typeof DocumentsRoute
   '/form-9': typeof Form9Route
   '/form-a': typeof FormARoute
   '/guide': typeof GuideRoute
   '/incorporation': typeof IncorporationRoute
   '/login': typeof LoginRoute
   '/notices': typeof NoticesRoute
+  '/personal': typeof PersonalRoute
   '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
   '/tax-assistant': typeof TaxAssistantRoute
   '/terms': typeof TermsRoute
+  '/admin/billing': typeof AdminBillingRoute
   '/approve/$token': typeof ApproveTokenRoute
   '/citizen/chat': typeof CitizenChatRoute
   '/citizen/documents': typeof CitizenDocumentsRoute
@@ -350,22 +386,26 @@ export interface FileRouteTypes {
     | '/'
     | '/accounts'
     | '/billing'
+    | '/business'
     | '/compliance'
     | '/consult'
     | '/consultations'
     | '/contracts'
     | '/corporate-filings'
     | '/dashboard'
+    | '/documents'
     | '/form-9'
     | '/form-a'
     | '/guide'
     | '/incorporation'
     | '/login'
     | '/notices'
+    | '/personal'
     | '/privacy'
     | '/signup'
     | '/tax-assistant'
     | '/terms'
+    | '/admin/billing'
     | '/approve/$token'
     | '/citizen/chat'
     | '/citizen/documents'
@@ -388,22 +428,26 @@ export interface FileRouteTypes {
     | '/'
     | '/accounts'
     | '/billing'
+    | '/business'
     | '/compliance'
     | '/consult'
     | '/consultations'
     | '/contracts'
     | '/corporate-filings'
     | '/dashboard'
+    | '/documents'
     | '/form-9'
     | '/form-a'
     | '/guide'
     | '/incorporation'
     | '/login'
     | '/notices'
+    | '/personal'
     | '/privacy'
     | '/signup'
     | '/tax-assistant'
     | '/terms'
+    | '/admin/billing'
     | '/approve/$token'
     | '/citizen/chat'
     | '/citizen/documents'
@@ -426,22 +470,26 @@ export interface FileRouteTypes {
     | '/'
     | '/accounts'
     | '/billing'
+    | '/business'
     | '/compliance'
     | '/consult'
     | '/consultations'
     | '/contracts'
     | '/corporate-filings'
     | '/dashboard'
+    | '/documents'
     | '/form-9'
     | '/form-a'
     | '/guide'
     | '/incorporation'
     | '/login'
     | '/notices'
+    | '/personal'
     | '/privacy'
     | '/signup'
     | '/tax-assistant'
     | '/terms'
+    | '/admin/billing'
     | '/approve/$token'
     | '/citizen/chat'
     | '/citizen/documents'
@@ -465,22 +513,26 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountsRoute: typeof AccountsRoute
   BillingRoute: typeof BillingRoute
+  BusinessRoute: typeof BusinessRoute
   ComplianceRoute: typeof ComplianceRoute
   ConsultRoute: typeof ConsultRoute
   ConsultationsRoute: typeof ConsultationsRoute
   ContractsRoute: typeof ContractsRoute
   CorporateFilingsRoute: typeof CorporateFilingsRoute
   DashboardRoute: typeof DashboardRoute
+  DocumentsRoute: typeof DocumentsRoute
   Form9Route: typeof Form9Route
   FormARoute: typeof FormARoute
   GuideRoute: typeof GuideRoute
   IncorporationRoute: typeof IncorporationRoute
   LoginRoute: typeof LoginRoute
   NoticesRoute: typeof NoticesRoute
+  PersonalRoute: typeof PersonalRoute
   PrivacyRoute: typeof PrivacyRoute
   SignupRoute: typeof SignupRoute
   TaxAssistantRoute: typeof TaxAssistantRoute
   TermsRoute: typeof TermsRoute
+  AdminBillingRoute: typeof AdminBillingRoute
   ApproveTokenRoute: typeof ApproveTokenRoute
   CitizenChatRoute: typeof CitizenChatRoute
   CitizenDocumentsRoute: typeof CitizenDocumentsRoute
@@ -521,6 +573,13 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/billing'
       preLoaderRoute: typeof BillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/business': {
+      id: '/business'
+      path: '/business'
+      fullPath: '/business'
+      preLoaderRoute: typeof BusinessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/compliance': {
@@ -565,6 +624,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/documents': {
+      id: '/documents'
+      path: '/documents'
+      fullPath: '/documents'
+      preLoaderRoute: typeof DocumentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/form-9': {
       id: '/form-9'
       path: '/form-9'
@@ -607,6 +673,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NoticesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/personal': {
+      id: '/personal'
+      path: '/personal'
+      fullPath: '/personal'
+      preLoaderRoute: typeof PersonalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -633,6 +706,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/billing': {
+      id: '/admin/billing'
+      path: '/admin/billing'
+      fullPath: '/admin/billing'
+      preLoaderRoute: typeof AdminBillingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/approve/$token': {
@@ -761,22 +841,26 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountsRoute: AccountsRoute,
   BillingRoute: BillingRoute,
+  BusinessRoute: BusinessRoute,
   ComplianceRoute: ComplianceRoute,
   ConsultRoute: ConsultRoute,
   ConsultationsRoute: ConsultationsRoute,
   ContractsRoute: ContractsRoute,
   CorporateFilingsRoute: CorporateFilingsRoute,
   DashboardRoute: DashboardRoute,
+  DocumentsRoute: DocumentsRoute,
   Form9Route: Form9Route,
   FormARoute: FormARoute,
   GuideRoute: GuideRoute,
   IncorporationRoute: IncorporationRoute,
   LoginRoute: LoginRoute,
   NoticesRoute: NoticesRoute,
+  PersonalRoute: PersonalRoute,
   PrivacyRoute: PrivacyRoute,
   SignupRoute: SignupRoute,
   TaxAssistantRoute: TaxAssistantRoute,
   TermsRoute: TermsRoute,
+  AdminBillingRoute: AdminBillingRoute,
   ApproveTokenRoute: ApproveTokenRoute,
   CitizenChatRoute: CitizenChatRoute,
   CitizenDocumentsRoute: CitizenDocumentsRoute,
