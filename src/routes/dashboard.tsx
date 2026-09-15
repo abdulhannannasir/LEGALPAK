@@ -3,13 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertTriangle,
-  BookOpen,
   Building2,
   CalendarClock,
   CheckCircle2,
+  Circle,
   Clock,
-  FileText,
+  FileSignature,
   FolderOpen,
+  FolderUp,
   Landmark,
   MessageCircle,
   Plus,
@@ -22,10 +23,13 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { listWorkspacesFn, createWorkspaceFn, type Workspace } from "@/lib/legalpak/workspaces";
 import { listCompaniesFn, type Company } from "@/lib/legalpak/companies";
 import { listWorkspaceMattersFn, type MatterWithCompany } from "@/lib/legalpak/matters";
+import { listWorkspaceActivityFn, type WorkspaceAuditLogRow } from "@/lib/legalpak/audit";
+import { describeAuditRow, formatAuditTimestamp } from "@/components/activity-timeline";
 import { MATTER_TYPE_LABEL } from "@/lib/legalpak/workflow";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { formatDateLong } from "@/lib/legal/accounts";
+import { cn } from "@/lib/cn";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
@@ -55,6 +59,16 @@ function urgencyOf(m: MatterWithCompany): Urgency {
   return "upcoming";
 }
 
+/**
+ * No SECP live-status feed is wired up — this is a plain read of whether the
+ * company has an incorporation date on file, not a registrar lookup.
+ */
+function companyStatus(c: Company): { label: string; tone: "success" | "warn" } {
+  return c.incorporation_date
+    ? { label: "Incorporated", tone: "success" }
+    : { label: "Registration in progress", tone: "warn" };
+}
+
 const QUICK_ACTIONS = [
   { to: "/contracts", label: "Create Contract", icon: Scale },
   { to: "/incorporation", label: "SECP Filing", icon: Rocket },
@@ -63,15 +77,14 @@ const QUICK_ACTIONS = [
 ] as const;
 
 const TOOLS = [
-  { to: "/incorporation", label: "Incorporation", icon: Rocket },
-  { to: "/corporate-filings", label: "SECP Filings", icon: FileText },
-  { to: "/contracts", label: "Contracts", icon: Scale },
-  { to: "/tax-assistant", label: "Tax", icon: Landmark },
-  { to: "/compliance", label: "Compliance", icon: CalendarClock },
-  { to: "/documents", label: "Documents", icon: FolderOpen },
-  { to: "/notices", label: "Legal Notices", icon: Send },
-  { to: "/guide", label: "Filing Guide", icon: BookOpen },
-  { to: "/citizen", label: "LegalPak Intelligence", icon: MessageCircle },
+  { to: "/companies/$companyId", label: "Company", icon: Building2, description: "Profile, matters & filings" },
+  { to: "/incorporation", label: "Incorporation", icon: Rocket, description: "Register a new company" },
+  { to: "/corporate-filings", label: "SECP", icon: FileSignature, description: "Form 21 & Form 45" },
+  { to: "/contracts", label: "Contracts", icon: Scale, description: "Draft binding agreements" },
+  { to: "/compliance", label: "Compliance", icon: CalendarClock, description: "Full deadline calendar" },
+  { to: "/tax-assistant", label: "Tax", icon: Landmark, description: "FBR income tax assistant" },
+  { to: "/documents", label: "Documents", icon: FolderOpen, description: "Workspace document vault" },
+  { to: "/citizen", label: "LegalPak Intelligence", icon: MessageCircle, description: "AI legal chat & guidance" },
 ] as const;
 
 function DashboardPage() {
@@ -85,6 +98,7 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [matters, setMatters] = useState<MatterWithCompany[] | null>(null);
+  const [activity, setActivity] = useState<WorkspaceAuditLogRow[] | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = useState("");
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
@@ -115,28 +129,38 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
     listWorkspaceMattersFn({ data: workspace.id })
       .then(setMatters)
       .catch(() => setMatters([]));
+    listWorkspaceActivityFn({ data: workspace.id })
+      .then(setActivity)
+      .catch(() => setActivity([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the workspace id changes
   }, [workspace?.id]);
 
-  const counts = useMemo(() => {
-    const c = { compliant: 0, soon: 0, overdue: 0 };
-    for (const m of matters ?? []) {
+  const primaryCompany = companies.find((c) => c.id === selectedCompanyId) ?? companies[0] ?? null;
+
+  const companyMatters = useMemo(() => {
+    if (!matters || !primaryCompany) return [];
+    return matters.filter((m) => m.company_id === primaryCompany.id);
+  }, [matters, primaryCompany]);
+
+  const health = useMemo(() => {
+    const total = companyMatters.length;
+    const completed = companyMatters.filter((m) => m.status === "closed").length;
+    const overdue = companyMatters.filter((m) => urgencyOf(m) === "overdue").length;
+    const upcoming = companyMatters.filter((m) => {
       const u = urgencyOf(m);
-      if (u === "overdue") c.overdue += 1;
-      else if (u === "soon") c.soon += 1;
-      else c.compliant += 1;
-    }
-    return c;
-  }, [matters]);
+      return u === "soon" || u === "upcoming";
+    }).length;
+    const score = total === 0 ? null : Math.round(((total - overdue) / total) * 100);
+    return { total, completed, overdue, upcoming, score };
+  }, [companyMatters]);
 
   const attention = useMemo(() => {
-    if (!matters) return [];
     const rank: Record<Urgency, number> = { overdue: 0, soon: 1, upcoming: 2, none: 3, done: 4 };
-    return [...matters]
+    return [...companyMatters]
       .filter((m) => m.status !== "closed")
       .sort((a, b) => rank[urgencyOf(a)] - rank[urgencyOf(b)])
       .slice(0, 3);
-  }, [matters]);
+  }, [companyMatters]);
 
   if (workspaces === null) return null;
 
@@ -185,21 +209,23 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
     );
   }
 
-  const primaryCompany = companies.find((c) => c.id === selectedCompanyId) ?? companies[0] ?? null;
+  const firstName = displayName?.split(" ")[0];
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-10">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium uppercase tracking-widest text-muted">{workspace.name}</p>
-          <h1 className="font-display text-3xl">
+          <h1 className="font-display text-3xl sm:text-4xl">
             {greeting()}
-            {displayName ? `, ${displayName.split(" ")[0]}` : ""}
+            {firstName ? `, ${firstName}` : ""}
           </h1>
+          <p className="mt-1 text-sm text-muted">Here's where things stand across your companies today.</p>
         </div>
         <Link
           to="/companies/new"
-          className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] bg-primary px-4 text-sm font-medium text-primary-fg hover:bg-accent"
+          className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[var(--radius-sm)] bg-primary px-4 text-sm font-medium text-primary-fg hover:bg-accent"
         >
           <Plus className="size-4" strokeWidth={1.75} />
           New company
@@ -207,7 +233,7 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
       </div>
 
       {loadingCompanies ? (
-        <p className="text-sm text-muted">Loading…</p>
+        <DashboardSkeleton />
       ) : companies.length === 0 ? (
         <div className="rounded-[var(--radius-lg)] border border-dashed border-border p-8 text-center">
           <Building2 className="mx-auto size-6 text-muted" strokeWidth={1.5} />
@@ -224,18 +250,20 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
         </div>
       ) : (
         <>
+          {/* Company selector */}
           {companies.length > 1 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="-mx-1 flex flex-wrap gap-2 px-1">
               {companies.map((c) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => setSelectedCompanyId(c.id)}
-                  className={`rounded-full border px-4 py-1.5 text-sm font-medium ${
+                  className={cn(
+                    "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
                     c.id === primaryCompany?.id
                       ? "border-primary bg-primary text-primary-fg"
-                      : "border-border bg-surface text-muted hover:text-fg"
-                  }`}
+                      : "border-border bg-surface text-muted hover:text-fg",
+                  )}
                 >
                   {c.name}
                 </button>
@@ -243,48 +271,70 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
             </div>
           )}
 
+          {/* Company summary */}
           {primaryCompany && (
-            <Link
-              to="/companies/$companyId"
-              params={{ companyId: primaryCompany.id }}
-              className="block rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-sm transition-colors hover:border-accent"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="font-display text-xl">{primaryCompany.name}</h2>
-                  <p className="mt-1 text-sm text-muted">
-                    {primaryCompany.cuin ? `CUIN ${primaryCompany.cuin}` : "No CUIN on file"}
-                    {primaryCompany.ntn ? ` · NTN ${primaryCompany.ntn}` : ""}
-                    {primaryCompany.company_type ? ` · ${primaryCompany.company_type}` : ""}
-                  </p>
+            <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-sm sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-widest text-muted">Company summary</p>
+                  <h2 className="mt-1 truncate font-display text-2xl">{primaryCompany.name}</h2>
                 </div>
-                <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted">
-                  {primaryCompany.incorporation_date
-                    ? `Incorporated ${formatDateLong(primaryCompany.incorporation_date)}`
-                    : "Setup in progress"}
-                </span>
+                <Link
+                  to="/companies/$companyId"
+                  params={{ companyId: primaryCompany.id }}
+                  className="inline-flex min-h-9 shrink-0 items-center rounded-[var(--radius-sm)] border border-border px-3 text-sm font-medium text-muted hover:border-accent hover:text-fg"
+                >
+                  View company →
+                </Link>
               </div>
-            </Link>
+              <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
+                <SummaryField label="Company name" value={primaryCompany.name} />
+                <SummaryField label="CUIN" value={primaryCompany.cuin || "Not on file"} muted={!primaryCompany.cuin} />
+                <SummaryField label="NTN" value={primaryCompany.ntn || "Not on file"} muted={!primaryCompany.ntn} />
+                <div>
+                  <dt className="text-xs uppercase tracking-wide text-muted">Status</dt>
+                  <dd className="mt-0.5">
+                    <StatusPill {...companyStatus(primaryCompany)} />
+                  </dd>
+                </div>
+              </dl>
+            </section>
           )}
 
+          {/* Compliance Health */}
           <section>
-            <h2 className="font-display text-xl">Compliance Health</h2>
-            <div className="mt-3 grid grid-cols-3 gap-3">
-              <StatTile label="Compliant" value={counts.compliant} tone="success" icon={CheckCircle2} />
-              <StatTile label="Due soon" value={counts.soon} tone="warn" icon={Clock} />
-              <StatTile label="Overdue" value={counts.overdue} tone="danger" icon={AlertTriangle} />
-            </div>
-            <Link to="/compliance" className="mt-2 inline-block text-sm text-accent underline">
-              View full compliance calendar
-            </Link>
+            <SectionHeading
+              title="Compliance Health"
+              action={{ to: "/compliance", label: "View full compliance calendar" }}
+            />
+            {health.total === 0 ? (
+              <EmptyState
+                className="mt-3"
+                text="No compliance matters tracked for this company yet. Start one from the company page."
+              />
+            ) : (
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="flex items-center gap-4 rounded-[var(--radius-lg)] border border-border bg-surface p-4">
+                  <ScoreRing score={health.score ?? 0} />
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted">Score</p>
+                    <p className="font-display text-2xl">{health.score}</p>
+                  </div>
+                </div>
+                <StatTile label="Overdue" value={health.overdue} tone="danger" icon={AlertTriangle} />
+                <StatTile label="Upcoming" value={health.upcoming} tone="warn" icon={Clock} />
+                <StatTile label="Completed" value={health.completed} tone="success" icon={CheckCircle2} />
+              </div>
+            )}
           </section>
 
+          {/* Attention Required */}
           <section>
-            <h2 className="font-display text-xl">Attention Required</h2>
+            <SectionHeading title="Attention Required" />
             {matters === null ? (
-              <p className="mt-3 text-sm text-muted">Loading…</p>
+              <SkeletonRows className="mt-3" count={2} />
             ) : attention.length === 0 ? (
-              <p className="mt-3 text-sm text-muted">Nothing urgent — everything open is on track.</p>
+              <EmptyState className="mt-3" text="Nothing urgent — everything open for this company is on track." />
             ) : (
               <div className="mt-3 space-y-2">
                 {attention.map((m) => {
@@ -294,7 +344,7 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
                       key={m.id}
                       to="/matters/$matterId"
                       params={{ matterId: m.id }}
-                      className="flex items-center justify-between rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 hover:border-accent"
+                      className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 hover:border-accent"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{m.title}</p>
@@ -303,13 +353,14 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
                         </p>
                       </div>
                       <span
-                        className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium ${
+                        className={cn(
+                          "shrink-0 rounded-full border px-3 py-1 text-xs font-medium",
                           u === "overdue"
                             ? "border-danger text-danger"
                             : u === "soon"
                               ? "border-warn text-warn"
-                              : "border-border text-muted"
-                        }`}
+                              : "border-border text-muted",
+                        )}
                       >
                         {m.due_date ? formatDateLong(m.due_date) : "No due date"}
                       </span>
@@ -320,29 +371,38 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
             )}
           </section>
 
+          {/* Quick Actions */}
           <section>
-            <h2 className="font-display text-xl">Quick Actions</h2>
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <SectionHeading title="Quick Actions" />
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               {QUICK_ACTIONS.map((a) => {
                 const Icon = a.icon;
                 return (
                   <Link
                     key={a.to}
                     to={a.to}
-                    className="flex flex-col items-start gap-2 rounded-[var(--radius-md)] border border-border bg-surface p-4 hover:border-accent"
+                    className="flex flex-col items-start gap-2 rounded-[var(--radius-md)] border border-border bg-surface p-4 transition-colors hover:border-accent hover:shadow-sm"
                   >
                     <Icon className="size-5 text-accent" strokeWidth={1.75} />
                     <span className="text-sm font-medium">{a.label}</span>
                   </Link>
                 );
               })}
-              {primaryCompany && (
+              {primaryCompany ? (
                 <Link
                   to="/companies/$companyId"
                   params={{ companyId: primaryCompany.id }}
-                  className="flex flex-col items-start gap-2 rounded-[var(--radius-md)] border border-border bg-surface p-4 hover:border-accent"
+                  className="flex flex-col items-start gap-2 rounded-[var(--radius-md)] border border-border bg-surface p-4 transition-colors hover:border-accent hover:shadow-sm"
                 >
-                  <FolderOpen className="size-5 text-accent" strokeWidth={1.75} />
+                  <FolderUp className="size-5 text-accent" strokeWidth={1.75} />
+                  <span className="text-sm font-medium">Upload Document</span>
+                </Link>
+              ) : (
+                <Link
+                  to="/companies/new"
+                  className="flex flex-col items-start gap-2 rounded-[var(--radius-md)] border border-border bg-surface p-4 transition-colors hover:border-accent hover:shadow-sm"
+                >
+                  <FolderUp className="size-5 text-accent" strokeWidth={1.75} />
                   <span className="text-sm font-medium">Upload Document</span>
                 </Link>
               )}
@@ -351,25 +411,107 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
         </>
       )}
 
+      {/* Tool Cards */}
       <section>
-        <h2 className="font-display text-xl">Tools</h2>
+        <SectionHeading title="Tools" />
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {TOOLS.map((t) => {
             const Icon = t.icon;
-            return (
-              <Link
-                key={t.to}
-                to={t.to}
-                className="flex flex-col items-start gap-2 rounded-[var(--radius-md)] border border-border bg-surface p-4 hover:border-accent"
-              >
+            const body = (
+              <>
                 <Icon className="size-5 text-accent" strokeWidth={1.75} />
                 <span className="text-sm font-medium">{t.label}</span>
+                <span className="text-xs text-muted">{t.description}</span>
+              </>
+            );
+            const cardClass =
+              "flex flex-col items-start gap-2 rounded-[var(--radius-md)] border border-border bg-surface p-4 transition-colors hover:border-accent hover:shadow-sm";
+            if (t.to === "/companies/$companyId") {
+              return primaryCompany ? (
+                <Link key={t.label} to="/companies/$companyId" params={{ companyId: primaryCompany.id }} className={cardClass}>
+                  {body}
+                </Link>
+              ) : (
+                <Link key={t.label} to="/companies/new" className={cardClass}>
+                  {body}
+                </Link>
+              );
+            }
+            return (
+              <Link key={t.label} to={t.to} className={cardClass}>
+                {body}
               </Link>
             );
           })}
         </div>
       </section>
+
+      {/* Recent Activity */}
+      <section>
+        <SectionHeading title="Recent Activity" />
+        {activity === null ? (
+          <SkeletonRows className="mt-3" count={4} />
+        ) : activity.length === 0 ? (
+          <EmptyState className="mt-3" text="No activity recorded yet — actions across your workspace will show up here." />
+        ) : (
+          <ol className="mt-3 space-y-3 border-l border-border pl-4">
+            {activity.map((row) => (
+              <li key={row.id} className="relative">
+                <span className="absolute -left-[21px] top-1.5 size-2 rounded-full bg-accent" />
+                <p className="text-sm font-medium">{describeAuditRow(row)}</p>
+                <p className="text-xs text-muted">
+                  {formatAuditTimestamp(row.created_at)}
+                  {row.company_name ? ` · ${row.company_name}` : ""}
+                  {row.user_name || row.user_email ? ` · ${row.user_name ?? row.user_email}` : ""}
+                </p>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
     </div>
+  );
+}
+
+function SectionHeading({
+  title,
+  action,
+}: {
+  title: string;
+  action?: { to: string; label: string };
+}) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+      <h2 className="font-display text-xl">{title}</h2>
+      {action && (
+        <Link to={action.to} className="text-sm text-accent underline underline-offset-2">
+          {action.label}
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function SummaryField({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs uppercase tracking-wide text-muted">{label}</dt>
+      <dd className={cn("mt-0.5 truncate text-sm font-medium", muted && "text-muted")}>{value}</dd>
+    </div>
+  );
+}
+
+function StatusPill({ label, tone }: { label: string; tone: "success" | "warn" }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium",
+        tone === "success" ? "border-success text-success" : "border-warn text-warn",
+      )}
+    >
+      <Circle className="size-1.5 fill-current" strokeWidth={0} />
+      {label}
+    </span>
   );
 }
 
@@ -387,9 +529,65 @@ function StatTile({
   const toneClass = { danger: "text-danger", warn: "text-warn", success: "text-success" }[tone];
   return (
     <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-4">
-      <Icon className={`size-4 ${toneClass}`} strokeWidth={1.75} />
+      <Icon className={cn("size-4", toneClass)} strokeWidth={1.75} />
       <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className={`mt-0.5 font-display text-2xl ${toneClass}`}>{value}</p>
+      <p className={cn("mt-0.5 font-display text-2xl", toneClass)}>{value}</p>
+    </div>
+  );
+}
+
+function ScoreRing({ score }: { score: number }) {
+  const radius = 26;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(100, score));
+  const offset = circumference - (clamped / 100) * circumference;
+  const tone = clamped >= 80 ? "var(--color-success)" : clamped >= 50 ? "var(--color-warn)" : "var(--color-danger)";
+  return (
+    <svg viewBox="0 0 64 64" className="size-14 shrink-0 -rotate-90" aria-hidden="true">
+      <circle cx="32" cy="32" r={radius} fill="none" stroke="var(--color-border)" strokeWidth="6" />
+      <circle
+        cx="32"
+        cy="32"
+        r={radius}
+        fill="none"
+        stroke={tone}
+        strokeWidth="6"
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        style={{ transition: "stroke-dashoffset 300ms ease" }}
+      />
+    </svg>
+  );
+}
+
+function EmptyState({ text, className }: { text: string; className?: string }) {
+  return (
+    <div className={cn("rounded-[var(--radius-md)] border border-dashed border-border bg-surface p-5", className)}>
+      <p className="text-sm text-muted">{text}</p>
+    </div>
+  );
+}
+
+function SkeletonRows({ count, className }: { count: number; className?: string }) {
+  return (
+    <div className={cn("space-y-2", className)} aria-hidden="true">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="h-14 animate-pulse rounded-[var(--radius-md)] border border-border bg-surface" />
+      ))}
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-3" aria-hidden="true">
+      <div className="h-24 animate-pulse rounded-[var(--radius-lg)] border border-border bg-surface" />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-20 animate-pulse rounded-[var(--radius-lg)] border border-border bg-surface" />
+        ))}
+      </div>
     </div>
   );
 }

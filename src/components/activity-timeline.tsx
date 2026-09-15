@@ -14,14 +14,15 @@ const ACTION_LABEL: Record<string, (m: Record<string, unknown>) => string> = {
   APPROVAL_REQUESTED: (m) => `Client approval requested${m.clientEmail ? ` (${m.clientEmail})` : ""}`,
   CLIENT_APPROVED: () => "Client approved",
   CLIENT_REJECTED: () => "Client rejected",
+  CONTRACT_VERSION_SAVED: (m) => `Contract version v${m.version ?? "?"} saved${m.note ? `: ${m.note}` : ""}`,
 };
 
-function describe(row: AuditLogRow): string {
+export function describeAuditRow(row: AuditLogRow): string {
   const fn = ACTION_LABEL[row.action];
   return fn ? fn(row.metadata) : row.action;
 }
 
-function formatTimestamp(iso: string): string {
+export function formatAuditTimestamp(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
@@ -50,9 +51,9 @@ export function ActivityTimeline({ matterId }: { matterId: string }) {
           {rows.map((row) => (
             <li key={row.id} className="relative">
               <span className="absolute -left-[21px] top-1.5 size-2 rounded-full bg-accent" />
-              <p className="text-sm font-medium">{describe(row)}</p>
+              <p className="text-sm font-medium">{describeAuditRow(row)}</p>
               <p className="text-xs text-muted">
-                {formatTimestamp(row.created_at)}
+                {formatAuditTimestamp(row.created_at)}
                 {row.user_name || row.user_email ? ` · ${row.user_name ?? row.user_email}` : ""}
               </p>
             </li>

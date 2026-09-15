@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { createId } from "./id";
-import { requireMatterAccess } from "./access";
+import { requireMatterAccess, requireWorkspaceAccess } from "./access";
 import type { Json } from "./types";
 
 export type AuditEntry = {
@@ -68,5 +68,30 @@ export const listMatterActivityFn = createServerFn({ method: "GET" })
       where a.matter_id = $1
       order by a.created_at desc`,
       [matterId],
+    );
+  });
+
+export type WorkspaceAuditLogRow = AuditLogRow & { company_name: string | null };
+
+/** Latest activity across every company in a workspace, for the dashboard's Recent Activity feed. */
+export const listWorkspaceActivityFn = createServerFn({ method: "GET" })
+  .validator((workspaceId: string) => z.string().min(1).parse(workspaceId))
+  .middleware([authMiddleware])
+  .handler(async ({ context, data: workspaceId }) => {
+    await requireWorkspaceAccess(context.userId, workspaceId);
+    const sql = await getSql();
+    return sql.query<WorkspaceAuditLogRow>(
+      `select
+        a.id, a.action, a.entity_type, a.metadata,
+        a.created_at::text as created_at,
+        u.name as user_name, u.email as user_email,
+        c.name as company_name
+      from audit_log a
+      left join "user" u on u.id = a.user_id
+      left join company c on c.id = a.company_id
+      where a.workspace_id = $1
+      order by a.created_at desc
+      limit 12`,
+      [workspaceId],
     );
   });
