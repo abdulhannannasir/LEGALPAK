@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Copy, Download, FileText, FileDown, Printer } from "lucide-react";
+import { useMemo, useState } from "react";
+import { AlertTriangle, Copy, Download, FileText, FileDown, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { textToDocxBlob } from "@/lib/generate-docx";
@@ -11,6 +11,9 @@ function titleFromFilename(filename: string): string {
     .replace(/[-_]+/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+/** Every generator in the app (citizen, incorporation, notices) marks an unfilled field as `[Like This]`. */
+const PLACEHOLDER_RE = /\[[A-Za-z][^[\]\n]{0,80}\]/;
 
 /**
  * Renders a generated legal-pack draft with copy / download / print actions.
@@ -29,6 +32,7 @@ export function PackOutput({
   const [exportingDocx, setExportingDocx] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const docTitle = title ?? titleFromFilename(filename);
+  const hasPlaceholders = useMemo(() => PLACEHOLDER_RE.test(text), [text]);
 
   async function copy() {
     try {
@@ -105,6 +109,15 @@ export function PackOutput({
 
   return (
     <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 print:hidden">
+      {hasPlaceholders && (
+        <div className="mb-3 flex items-start gap-2 rounded-[var(--radius-sm)] border border-warn bg-flag-med px-3 py-2 text-xs text-warn">
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" strokeWidth={1.75} />
+          <p>
+            This draft still has unfilled <code>[bracketed]</code> placeholders — fill in the details above before
+            you copy, download, print, or send it anywhere.
+          </p>
+        </div>
+      )}
       <div className="mb-3 flex flex-wrap gap-2">
         <Button type="button" variant="secondary" onClick={copy}>
           <Copy className="size-4" strokeWidth={1.75} />

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { PackOutput } from "@/components/pack-output";
 import { usePersistedState } from "@/lib/use-persisted-state";
-import { t, UI, dirFor, usePersistedLang } from "@/lib/citizen/i18n";
+import { t, UI, dirFor, usePersistedLang, type Lang } from "@/lib/citizen/i18n";
 import { TOPICS } from "@/lib/citizen/topics";
 import {
   UTILITY_PROVIDERS,
@@ -30,6 +30,51 @@ export const Route = createFileRoute("/help-desk/utility-dispute")({
     ],
   }),
 });
+
+const COPY = {
+  en: {
+    title: "Utility Overbilling & Detection Bills",
+    intro:
+      "For LESCO, K-Electric, IESCO, MEPCO or SNGPL detection/tampering bills that look disproportionate to your actual usage.",
+    providerLabel: "Utility provider",
+    referenceLabel: "Reference / consumer number",
+    avgUnitsLabel: "Average monthly units (normal bill)",
+    disputedUnitsLabel: "Disputed units billed",
+    surchargeLabel: "Detection surcharge (PKR)",
+    flaggedNote:
+      "This looks like an unauthorized detection/tampering claim — Section 26(6) of the Electricity Act, 1910 requires a proper inspection report before such a charge is valid.",
+    unflaggedNote:
+      "This doesn't clearly look like a detection bill, but the letter below still requests re-verification of the reading.",
+  },
+  ur: {
+    title: "بجلی/گیس کا زائد بل اور ڈیٹیکشن بل",
+    intro:
+      "LESCO، K-Electric، IESCO، MEPCO یا SNGPL کے ڈیٹیکشن/ٹیمپرنگ بلوں کے لیے جو آپ کے اصل استعمال سے غیر متناسب لگیں۔",
+    providerLabel: "بجلی/گیس فراہم کنندہ",
+    referenceLabel: "ریفرنس / کنزیومر نمبر",
+    avgUnitsLabel: "اوسط ماہانہ یونٹس (معمول کا بل)",
+    disputedUnitsLabel: "متنازع بل کیے گئے یونٹس",
+    surchargeLabel: "ڈیٹیکشن سرچارج (روپے)",
+    flaggedNote:
+      "یہ ایک غیر مجاز ڈیٹیکشن/ٹیمپرنگ کا دعویٰ لگتا ہے — الیکٹریسٹی ایکٹ 1910 کی دفعہ 26(6) کے تحت ایسا چارج درست ہونے کے لیے پہلے مناسب معائنہ رپورٹ درکار ہے۔",
+    unflaggedNote:
+      "یہ واضح طور پر ڈیٹیکشن بل نہیں لگتا، لیکن نیچے دیا گیا خط پھر بھی ریڈنگ کی دوبارہ تصدیق کی درخواست کرتا ہے۔",
+  },
+  roman: {
+    title: "Bijli/Gas ka Zaid Bill aur Detection Bills",
+    intro:
+      "LESCO, K-Electric, IESCO, MEPCO ya SNGPL ke detection/tampering bills ke liye jo aap ke asal istemal se ghair mutanasib lagein.",
+    providerLabel: "Bijli/Gas provider",
+    referenceLabel: "Reference / consumer number",
+    avgUnitsLabel: "Average monthly units (mamool ka bill)",
+    disputedUnitsLabel: "Mutanaza bill kiye gaye units",
+    surchargeLabel: "Detection surcharge (PKR)",
+    flaggedNote:
+      "Yeh aik ghair mujaz detection/tampering ka dawa lagta hai — Electricity Act 1910 ki Section 26(6) ke tehat aisa charge durust hone ke liye pehle munasib muaina report darkar hai.",
+    unflaggedNote:
+      "Yeh wazeh tor par detection bill nahi lagta, lekin neeche diya gaya khat phir bhi reading ki dobara tasdeeq ki darkhwast karta hai.",
+  },
+} satisfies Record<Lang, Record<string, string>>;
 
 const emptyForm: UtilityDisputeInput = {
   provider: "LESCO",
@@ -66,11 +111,8 @@ function UtilityDisputePage() {
           <p className="text-xs font-medium uppercase tracking-widest text-muted">
             {t(lang, UI.eyebrow)} / {t(lang, topic.title)}
           </p>
-          <h1 className="font-display text-3xl">Utility Overbilling & Detection Bills</h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted">
-            For LESCO, K-Electric, IESCO, MEPCO or SNGPL detection/tampering bills that look
-            disproportionate to your actual usage.
-          </p>
+          <h1 className="font-display text-3xl">{COPY[lang].title}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted">{COPY[lang].intro}</p>
         </div>
         <LanguageSwitcher lang={lang} onChange={setLang} />
       </div>
@@ -81,7 +123,7 @@ function UtilityDisputePage() {
         <>
           <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Utility provider">
+              <Field label={COPY[lang].providerLabel}>
                 <Select
                   value={form.provider}
                   onChange={(e) => set("provider", e.target.value as UtilityDisputeInput["provider"])}
@@ -93,7 +135,7 @@ function UtilityDisputePage() {
                   ))}
                 </Select>
               </Field>
-              <Field label="Reference / consumer number">
+              <Field label={COPY[lang].referenceLabel}>
                 <Input
                   value={form.referenceNumber}
                   onChange={(e) => set("referenceNumber", e.target.value)}
@@ -102,21 +144,21 @@ function UtilityDisputePage() {
               <Field label={t(lang, UI.city)}>
                 <Input value={form.city} onChange={(e) => set("city", e.target.value)} />
               </Field>
-              <Field label="Average monthly units (normal bill)">
+              <Field label={COPY[lang].avgUnitsLabel}>
                 <Input
                   type="number"
                   value={form.averageMonthlyUnits || ""}
                   onChange={(e) => set("averageMonthlyUnits", Number(e.target.value) || 0)}
                 />
               </Field>
-              <Field label="Disputed units billed">
+              <Field label={COPY[lang].disputedUnitsLabel}>
                 <Input
                   type="number"
                   value={form.disputedUnitsBilled || ""}
                   onChange={(e) => set("disputedUnitsBilled", Number(e.target.value) || 0)}
                 />
               </Field>
-              <Field label="Detection surcharge (PKR)">
+              <Field label={COPY[lang].surchargeLabel}>
                 <Input
                   type="number"
                   value={form.detectionSurcharge || ""}
@@ -131,9 +173,7 @@ function UtilityDisputePage() {
                 strokeWidth={1.75}
               />
               <span className={flagged ? "text-danger" : "text-muted"}>
-                {flagged
-                  ? "This looks like an unauthorized detection/tampering claim — Section 26(6) of the Electricity Act, 1910 requires a proper inspection report before such a charge is valid."
-                  : "This doesn't clearly look like a detection bill, but the letter below still requests re-verification of the reading."}
+                {flagged ? COPY[lang].flaggedNote : COPY[lang].unflaggedNote}
               </span>
             </div>
           </section>

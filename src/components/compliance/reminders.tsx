@@ -80,7 +80,14 @@ export function ComplianceReminders({ matterId }: { matterId: string }) {
         </Button>
       </div>
 
-      {reminders === null ? (
+      {reminders === null && loadError ? (
+        <div className="mt-4 flex items-center gap-3 text-sm text-danger">
+          <span>Could not load reminders.</span>
+          <button type="button" onClick={refresh} className="font-medium underline">
+            Try again
+          </button>
+        </div>
+      ) : reminders === null ? (
         <p className="mt-4 text-sm text-muted">Loading…</p>
       ) : reminders.length === 0 ? (
         <p className="mt-4 text-sm text-muted">No custom reminders set.</p>

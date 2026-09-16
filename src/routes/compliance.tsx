@@ -79,6 +79,7 @@ function ComplianceBody() {
         toast.error("Could not load the compliance center");
       });
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the workspace id changes
   useEffect(loadItems, [workspace?.id]);
 
   const counts = useMemo(() => {

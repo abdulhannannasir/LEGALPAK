@@ -5,7 +5,7 @@
  * prefix-based: "/consult/does-not-exist" is a functional-app 404, not a
  * marketing page.
  */
-export const MARKETING_ROUTES = new Set(["/", "/consult", "/login", "/signup"]);
+export const MARKETING_ROUTES = new Set(["/", "/consult", "/login", "/signup", "/privacy", "/terms"]);
 
 export function isMarketingRoute(pathname: string): boolean {
   return MARKETING_ROUTES.has(pathname);

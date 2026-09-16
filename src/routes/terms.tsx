@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/terms")({
   component: TermsPage,
@@ -26,9 +26,9 @@ function TermsPage() {
         <p className="mt-4 text-sm leading-relaxed text-muted">
           By using LegalPak, you agree to these terms. If you don't agree, please don't use the
           site. See also our{" "}
-          <a href="/privacy" className="text-accent underline">
+          <Link to="/privacy" className="text-accent underline">
             Privacy Policy
-          </a>
+          </Link>
           , which governs how we handle your information.
         </p>
       </div>
@@ -120,9 +120,9 @@ function TermsPage() {
           (Financial Statements, Form A, Form 9, Contracts, Incorporation, Form 21/45, Legal
           Notices, the Tax Assistant, and the Compliance Calendar) requires an active subscription
           of PKR 3,000 per month per workspace, paid by manual EasyPaisa transfer — see{" "}
-          <a href="/billing" className="text-accent underline">
+          <Link to="/billing" className="text-accent underline">
             Billing
-          </a>{" "}
+          </Link>{" "}
           for the current process. Because this is a manual transfer rather than an automated
           payment gateway, activation happens once we've verified your transfer, not instantly on
           submission; contact us if a payment isn't reflected within a reasonable time. Where the
@@ -196,9 +196,9 @@ function TermsPage() {
         <h2 className="font-display text-lg">Contact</h2>
         <p className="text-sm leading-relaxed text-muted">
           Questions about these terms can be made through the{" "}
-          <a href="/consult" className="text-accent underline">
+          <Link to="/consult" className="text-accent underline">
             Consult Counsel
-          </a>{" "}
+          </Link>{" "}
           request form.
         </p>
       </section>

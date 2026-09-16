@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { Lock } from "lucide-react";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -59,11 +60,14 @@ function SubscriptionCheck({ children }: { children: ReactNode }) {
       {!workspace ? (
         <p className="text-sm text-muted">Create a workspace first, then subscribe.</p>
       ) : null}
-      <a href={workspace ? `/billing?workspaceId=${workspace.id}` : "/dashboard"}>
+      <Link
+        to={workspace ? "/billing" : "/dashboard"}
+        search={workspace ? { workspaceId: workspace.id } : undefined}
+      >
         <Button type="button" className="w-full justify-center">
           {workspace ? "Subscribe for PKR 3,000/month" : "Create a workspace"}
         </Button>
-      </a>
+      </Link>
     </div>
   );
 }

@@ -94,7 +94,13 @@ export function ComplianceSummaryCard({
 
       <div className="mt-4">
         {isComplete ? (
-          <Button type="button" variant="secondary" disabled={busy || item.status === "closed"} onClick={onReopen}>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={busy || item.status === "closed"}
+            onClick={onReopen}
+            title={item.status === "closed" ? "A closed matter is archival and can't be reopened" : undefined}
+          >
             <RotateCcw className="size-4" strokeWidth={1.75} />
             Reopen
           </Button>

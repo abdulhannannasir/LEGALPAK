@@ -36,6 +36,7 @@ const emptyForm = {
 
 function LawyerDirectoryPage() {
   const [lawyers, setLawyers] = useState<Lawyer[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
@@ -44,10 +45,15 @@ function LawyerDirectoryPage() {
     specialty: "",
   });
 
-  useEffect(() => {
+  function loadLawyers() {
+    setLoadError(false);
     listVerifiedLawyersFn()
       .then(setLawyers)
-      .catch(() => setLawyers([]));
+      .catch(() => setLoadError(true));
+  }
+
+  useEffect(() => {
+    loadLawyers();
 
     // A help-desk wizard hands off here with ?city=&specialty= so a user
     // doesn't have to re-describe their situation.
@@ -133,7 +139,18 @@ function LawyerDirectoryPage() {
         </div>
       )}
 
-      {filteredLawyers === null ? null : filteredLawyers.length === 0 ? (
+      {loadError ? (
+        <div className="flex flex-wrap items-center justify-center gap-3 rounded-[var(--radius-lg)] border border-danger bg-flag-high p-8 text-sm text-danger">
+          <span>Could not load the lawyer directory.</span>
+          <button type="button" onClick={loadLawyers} className="font-medium underline">
+            Try again
+          </button>
+        </div>
+      ) : filteredLawyers === null ? (
+        <div className="rounded-[var(--radius-lg)] border border-dashed border-border p-8 text-center text-sm text-muted">
+          Loading verified advocates…
+        </div>
+      ) : filteredLawyers.length === 0 ? (
         <div className="rounded-[var(--radius-lg)] border border-dashed border-border p-8 text-center text-sm text-muted">
           No verified lawyers match this filter yet — try clearing it to see the full directory.
         </div>

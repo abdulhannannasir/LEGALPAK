@@ -93,8 +93,8 @@ function TenantProtectionPage() {
           <p className="text-xs font-medium uppercase tracking-widest text-muted">
             {t(lang, UI.eyebrow)} / {t(lang, topic.title)}
           </p>
-          <h1 className="font-display text-3xl">Residential Tenant Eviction Shield</h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted">{tenancyGroundsExplainer(form)}</p>
+          <h1 className="font-display text-3xl">{COPY[lang].title}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted">{tenancyGroundsExplainer(form, lang)}</p>
         </div>
         <LanguageSwitcher lang={lang} onChange={setLang} />
       </div>
@@ -120,29 +120,29 @@ function TenantProtectionPage() {
               <Field label={t(lang, UI.city)}>
                 <Input value={form.city} onChange={(e) => set("city", e.target.value)} />
               </Field>
-              <Field label="Written agreement exists?">
+              <Field label={COPY[lang].agreementLabel}>
                 <Select
                   value={form.hasWrittenAgreement}
                   onChange={(e) =>
                     set("hasWrittenAgreement", e.target.value as TenantProtectionInput["hasWrittenAgreement"])
                   }
                 >
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
+                  <option value="yes">{t(lang, UI.yes)}</option>
+                  <option value="no">{t(lang, UI.no)}</option>
                 </Select>
               </Field>
-              <Field label="Rent paid status">
+              <Field label={COPY[lang].rentStatusLabel}>
                 <Select
                   value={form.rentPaidStatus}
                   onChange={(e) =>
                     set("rentPaidStatus", e.target.value as TenantProtectionInput["rentPaidStatus"])
                   }
                 >
-                  <option value="receipts">Receipts available</option>
-                  <option value="cash">Paid in cash, no receipts</option>
+                  <option value="receipts">{COPY[lang].receiptsOption}</option>
+                  <option value="cash">{COPY[lang].cashOption}</option>
                 </Select>
               </Field>
-              <Field label="Reason cited by landlord for eviction" className="sm:col-span-2">
+              <Field label={COPY[lang].landlordReasonLabel} className="sm:col-span-2">
                 <Input
                   value={form.landlordReason}
                   onChange={(e) => set("landlordReason", e.target.value)}

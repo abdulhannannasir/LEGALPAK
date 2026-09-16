@@ -9,6 +9,10 @@ describe("isMarketingRoute", () => {
     assert.equal(isMarketingRoute("/login"), true);
     assert.equal(isMarketingRoute("/signup"), true);
   });
+  it("recognizes the anonymous-facing legal pages linked from the homepage footer", () => {
+    assert.equal(isMarketingRoute("/privacy"), true);
+    assert.equal(isMarketingRoute("/terms"), true);
+  });
   it("rejects functional app routes", () => {
     assert.equal(isMarketingRoute("/dashboard"), false);
     assert.equal(isMarketingRoute("/accounts"), false);

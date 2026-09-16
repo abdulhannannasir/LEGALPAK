@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, Clock, Copy, XCircle } from "lucide-react";
@@ -140,9 +140,9 @@ function BillingBody() {
       {!workspaceId ? (
         <div className="rounded-[var(--radius-lg)] border border-dashed border-border p-8 text-center text-sm text-muted">
           Create a workspace from the{" "}
-          <a href="/dashboard" className="text-accent underline">
+          <Link to="/dashboard" className="text-accent underline">
             dashboard
-          </a>{" "}
+          </Link>{" "}
           first, then come back here to subscribe.
         </div>
       ) : (

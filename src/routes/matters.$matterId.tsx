@@ -185,7 +185,7 @@ function MatterBody() {
         />
       )}
 
-      {matter.type !== "CONTRACT" && (
+      {matter.type !== "CONTRACT" && !isComplianceMatterType(matter.type) && (
         <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Status</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">

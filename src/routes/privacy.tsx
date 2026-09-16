@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/privacy")({
   component: PrivacyPage,
@@ -177,9 +177,9 @@ function PrivacyPage() {
         <p className="text-sm leading-relaxed text-muted">
           Questions about this policy, or a request to access, correct, or delete your data, can be
           made through the{" "}
-          <a href="/consult" className="text-accent underline">
+          <Link to="/consult" className="text-accent underline">
             Consult Counsel
-          </a>{" "}
+          </Link>{" "}
           request form.
         </p>
       </section>

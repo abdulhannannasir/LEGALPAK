@@ -6,6 +6,7 @@ import { StepProgress } from "@/components/citizen/step-progress";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { PackOutput } from "@/components/pack-output";
+import { LegalSourceNote } from "@/components/legal-source-note";
 import { usePersistedState } from "@/lib/use-persisted-state";
 import { t, UI, dirFor, usePersistedLang, type Lang } from "@/lib/citizen/i18n";
 import { TOPICS } from "@/lib/citizen/topics";
@@ -185,8 +186,9 @@ function BouncedChequePage() {
                     />
                   </Field>
                 </section>
-                <div className="lg:sticky lg:top-20">
+                <div className="space-y-3 lg:sticky lg:top-20">
                   <PackOutput text={out} filename="489f-legal-notice.txt" />
+                  <LegalSourceNote sourceKey="notice-489f" />
                 </div>
               </div>
             }

@@ -7,6 +7,7 @@ import { StepProgress } from "@/components/citizen/step-progress";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { PackOutput } from "@/components/pack-output";
+import { LegalSourceNote } from "@/components/legal-source-note";
 import { usePersistedState } from "@/lib/use-persisted-state";
 import { t, UI, dirFor, usePersistedLang, type Lang } from "@/lib/citizen/i18n";
 import { TOPICS } from "@/lib/citizen/topics";
@@ -144,6 +145,8 @@ function PoliceEncounterPage() {
               </div>
             )}
           </section>
+
+          <LegalSourceNote sourceKey="citizen-offense-classification" />
 
           <section className="grid gap-4 sm:grid-cols-3">
             <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-4">

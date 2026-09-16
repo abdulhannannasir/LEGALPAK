@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -130,9 +130,9 @@ function CitizenDocumentsPage() {
           Plain-language drafts for common situations. These are starting points, not filed
           documents — an affidavit needs a notary/oath commissioner, and a legal notice should go by
           registered post. For anything contested, use the{" "}
-          <a className="text-accent underline" href="/citizen/lawyers">
+          <Link className="text-accent underline" to="/citizen/lawyers">
             lawyer directory
-          </a>
+          </Link>
           .
         </p>
       </div>

@@ -166,7 +166,7 @@ function CitizenChatPage() {
           placeholder="e.g. Mera makan malik dukan khali karwana chahta hai…"
           className="min-h-[3rem] flex-1"
         />
-        <Button type="button" onClick={send} disabled={sending || !input.trim()}>
+        <Button type="button" onClick={send} disabled={sending || !input.trim()} aria-label="Send message">
           <Send className="size-4" strokeWidth={1.75} />
         </Button>
       </div>

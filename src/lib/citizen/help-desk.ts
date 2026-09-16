@@ -44,52 +44,6 @@ export const EMERGENCY_CONTACTS: EmergencyContact[] = [
   },
 ];
 
-export type HelpDeskCategory = {
-  id: string;
-  to: string;
-  title: string;
-  titleUrdu: string;
-  body: string;
-};
-
-export const HELP_DESK_CATEGORIES: HelpDeskCategory[] = [
-  {
-    id: "utility-dispute",
-    to: "/help-desk/utility-dispute",
-    title: "Utility Overbilling",
-    titleUrdu: "بجلی/گیس اوور بلنگ",
-    body: "Detection bills and meter-tampering claims from LESCO, K-Electric, IESCO, MEPCO or SNGPL.",
-  },
-  {
-    id: "cyber-report",
-    to: "/help-desk/cyber-report",
-    title: "Cyber Harassment & Scams",
-    titleUrdu: "سائبر ہراسانی و فراڈ",
-    body: "Blackmail, non-consensual imagery, OTP scams, impersonation on WhatsApp, Facebook, Instagram, TikTok.",
-  },
-  {
-    id: "tenant-protection",
-    to: "/help-desk/tenant-protection",
-    title: "Tenancy & Eviction",
-    titleUrdu: "کرایہ داری و بے دخلی",
-    body: "Illegal lockouts, utility disconnection, and eviction grounds under provincial rent law.",
-  },
-  {
-    id: "police-encounter",
-    to: "/help-desk/police-encounter",
-    title: "Police Stop & Bail Rights",
-    titleUrdu: "پولیس تفتیش و ضمانت",
-    body: "Search & checkpoint rights, FIR vs. non-cognizable offences, bail-before-arrest.",
-  },
-  {
-    id: "succession",
-    to: "/help-desk/succession",
-    title: "Inheritance & Succession",
-    titleUrdu: "وراثت و جانشینی",
-    body: "NADRA Succession Facilitation Unit vs. a civil partition suit — which path applies.",
-  },
-];
-
 /* ---------------------------------------------------------------------- */
 /* 1. Utility overbilling / detection bills                                */
 /* ---------------------------------------------------------------------- */
