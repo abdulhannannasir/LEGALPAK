@@ -20,8 +20,9 @@ import {
 } from "lucide-react";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { listWorkspacesFn, createWorkspaceFn, type Workspace } from "@/lib/legalpak/workspaces";
-import { listCompaniesFn, type Company } from "@/lib/legalpak/companies";
+import { createWorkspaceFn } from "@/lib/legalpak/workspaces";
+import { registrationStatus } from "@/lib/legalpak/companies";
+import { useCompanyContext } from "@/lib/legalpak/company-context";
 import { listWorkspaceMattersFn, type MatterWithCompany } from "@/lib/legalpak/matters";
 import { listWorkspaceActivityFn, type WorkspaceAuditLogRow } from "@/lib/legalpak/audit";
 import { describeAuditRow, formatAuditTimestamp } from "@/components/activity-timeline";
@@ -30,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { formatDateLong } from "@/lib/legal/accounts";
 import { cn } from "@/lib/cn";
+import { EmptyState, ScoreRing, SkeletonRows, StatTile } from "@/components/company-health-widgets";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
@@ -59,16 +61,6 @@ function urgencyOf(m: MatterWithCompany): Urgency {
   return "upcoming";
 }
 
-/**
- * No SECP live-status feed is wired up — this is a plain read of whether the
- * company has an incorporation date on file, not a registrar lookup.
- */
-function companyStatus(c: Company): { label: string; tone: "success" | "warn" } {
-  return c.incorporation_date
-    ? { label: "Incorporated", tone: "success" }
-    : { label: "Registration in progress", tone: "warn" };
-}
-
 const QUICK_ACTIONS = [
   { to: "/contracts", label: "Create Contract", icon: Scale },
   { to: "/incorporation", label: "SECP Filing", icon: Rocket },
@@ -78,13 +70,12 @@ const QUICK_ACTIONS = [
 
 const TOOLS = [
   { to: "/companies/$companyId", label: "Company", icon: Building2, description: "Profile, matters & filings" },
-  { to: "/incorporation", label: "Incorporation", icon: Rocket, description: "Register a new company" },
-  { to: "/corporate-filings", label: "SECP", icon: FileSignature, description: "Form 21 & Form 45" },
+  { to: "/secp", label: "SECP", icon: FileSignature, description: "Incorporation, filings & share changes" },
   { to: "/contracts", label: "Contracts", icon: Scale, description: "Draft binding agreements" },
   { to: "/compliance", label: "Compliance", icon: CalendarClock, description: "Full deadline calendar" },
-  { to: "/tax-assistant", label: "Tax", icon: Landmark, description: "FBR income tax assistant" },
+  { to: "/tax", label: "Tax", icon: Landmark, description: "FBR income tax assistant" },
   { to: "/documents", label: "Documents", icon: FolderOpen, description: "Workspace document vault" },
-  { to: "/citizen", label: "LegalPak Intelligence", icon: MessageCircle, description: "AI legal chat & guidance" },
+  { to: "/ai-counsel", label: "AI Counsel", icon: MessageCircle, description: "Compliance guidance & chat" },
 ] as const;
 
 function DashboardPage() {
@@ -95,47 +86,33 @@ function DashboardPage() {
 }
 
 function DashboardBody({ displayName }: { displayName: string | null }) {
-  const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const {
+    workspace,
+    companies,
+    loading: loadingCompanies,
+    selectedCompany,
+    setSelectedCompanyId,
+    refreshWorkspace,
+  } = useCompanyContext();
   const [matters, setMatters] = useState<MatterWithCompany[] | null>(null);
   const [activity, setActivity] = useState<WorkspaceAuditLogRow[] | null>(null);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = useState("");
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
-  const [loadingCompanies, setLoadingCompanies] = useState(false);
-
-  async function refreshWorkspaces() {
-    const rows = await listWorkspacesFn();
-    setWorkspaces(rows);
-    return rows;
-  }
-
-  useEffect(() => {
-    refreshWorkspaces().catch(() => setWorkspaces([]));
-  }, []);
-
-  const workspace = workspaces?.[0] ?? null;
 
   useEffect(() => {
     if (!workspace) return;
-    setLoadingCompanies(true);
-    listCompaniesFn({ data: workspace.id })
-      .then((rows) => {
-        setCompanies(rows);
-        setSelectedCompanyId((prev) => prev ?? rows[0]?.id ?? null);
-      })
-      .catch(() => toast.error("Could not load companies"))
-      .finally(() => setLoadingCompanies(false));
     listWorkspaceMattersFn({ data: workspace.id })
       .then(setMatters)
       .catch(() => setMatters([]));
     listWorkspaceActivityFn({ data: workspace.id })
       .then(setActivity)
       .catch(() => setActivity([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the workspace id changes
-  }, [workspace?.id]);
+  }, [workspace]);
 
-  const primaryCompany = companies.find((c) => c.id === selectedCompanyId) ?? companies[0] ?? null;
+  // Dashboard always focuses on one company's health — default to the first
+  // one when the header switcher is set to "All companies" (selectedCompanyId
+  // === null) rather than rendering an aggregate view this page isn't built for.
+  const primaryCompany = selectedCompany ?? companies[0] ?? null;
 
   const companyMatters = useMemo(() => {
     if (!matters || !primaryCompany) return [];
@@ -162,7 +139,7 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
       .slice(0, 3);
   }, [companyMatters]);
 
-  if (workspaces === null) return null;
+  if (workspace === undefined) return null;
 
   if (!workspace) {
     async function createWorkspace(e: React.FormEvent) {
@@ -171,7 +148,7 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
       setCreatingWorkspace(true);
       try {
         await createWorkspaceFn({ data: workspaceName.trim() });
-        await refreshWorkspaces();
+        refreshWorkspace();
         toast.success("Workspace created");
       } catch {
         toast.error("Could not create workspace");
@@ -294,7 +271,7 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
                 <div>
                   <dt className="text-xs uppercase tracking-wide text-muted">Status</dt>
                   <dd className="mt-0.5">
-                    <StatusPill {...companyStatus(primaryCompany)} />
+                    <StatusPill {...registrationStatus(primaryCompany)} />
                   </dd>
                 </div>
               </dl>
@@ -512,70 +489,6 @@ function StatusPill({ label, tone }: { label: string; tone: "success" | "warn" }
       <Circle className="size-1.5 fill-current" strokeWidth={0} />
       {label}
     </span>
-  );
-}
-
-function StatTile({
-  label,
-  value,
-  tone,
-  icon: Icon,
-}: {
-  label: string;
-  value: number;
-  tone: "danger" | "warn" | "success";
-  icon: typeof AlertTriangle;
-}) {
-  const toneClass = { danger: "text-danger", warn: "text-warn", success: "text-success" }[tone];
-  return (
-    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-4">
-      <Icon className={cn("size-4", toneClass)} strokeWidth={1.75} />
-      <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className={cn("mt-0.5 font-display text-2xl", toneClass)}>{value}</p>
-    </div>
-  );
-}
-
-function ScoreRing({ score }: { score: number }) {
-  const radius = 26;
-  const circumference = 2 * Math.PI * radius;
-  const clamped = Math.max(0, Math.min(100, score));
-  const offset = circumference - (clamped / 100) * circumference;
-  const tone = clamped >= 80 ? "var(--color-success)" : clamped >= 50 ? "var(--color-warn)" : "var(--color-danger)";
-  return (
-    <svg viewBox="0 0 64 64" className="size-14 shrink-0 -rotate-90" aria-hidden="true">
-      <circle cx="32" cy="32" r={radius} fill="none" stroke="var(--color-border)" strokeWidth="6" />
-      <circle
-        cx="32"
-        cy="32"
-        r={radius}
-        fill="none"
-        stroke={tone}
-        strokeWidth="6"
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        style={{ transition: "stroke-dashoffset 300ms ease" }}
-      />
-    </svg>
-  );
-}
-
-function EmptyState({ text, className }: { text: string; className?: string }) {
-  return (
-    <div className={cn("rounded-[var(--radius-md)] border border-dashed border-border bg-surface p-5", className)}>
-      <p className="text-sm text-muted">{text}</p>
-    </div>
-  );
-}
-
-function SkeletonRows({ count, className }: { count: number; className?: string }) {
-  return (
-    <div className={cn("space-y-2", className)} aria-hidden="true">
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="h-14 animate-pulse rounded-[var(--radius-md)] border border-border bg-surface" />
-      ))}
-    </div>
   );
 }
 

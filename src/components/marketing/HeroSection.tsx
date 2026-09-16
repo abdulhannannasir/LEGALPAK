@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle, ArrowRight, CheckCircle2, Clock } from "lucide-react";
 
-const TRUST_ITEMS = ["Built for Pakistan", "SECP", "FBR", "Contract Act 1872"];
+const TRUST_ITEMS = ["Built for Pakistan", "SECP", "FBR", "Companies Act 2017"];
 
 const STATUS_ROWS = [
   {
@@ -39,23 +39,24 @@ export function HeroSection() {
         <div className="text-center lg:text-left">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.15em] text-accent uppercase shadow-sm">
             <span className="size-1.5 rounded-full bg-accent" />
-            For companies &amp; citizens across Pakistan
+            Pakistan&apos;s Corporate Compliance OS
           </span>
 
           <h1 className="mt-6 text-balance font-display text-4xl leading-[1.08] tracking-tight text-fg sm:text-5xl lg:text-6xl">
-            Pakistan&apos;s Legal &amp; Compliance <span className="text-accent">Operating System</span>
+            Run Your Pakistani Company&apos;s <span className="text-accent">Legal &amp; Compliance Work</span> in One Place
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-center text-base leading-relaxed text-muted sm:text-lg lg:mx-0 lg:border-l-2 lg:border-accent/40 lg:pl-4 lg:text-left">
-            “Start a company. Draft a contract. Stay compliant. Understand your rights.”
+            SECP filings, corporate documents, compliance deadlines and contracts — organised in
+            one workspace for Pakistani businesses.
           </p>
 
           <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
             <Link
-              to="/business"
+              to="/dashboard"
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-sm)] bg-primary px-7 text-sm font-semibold text-primary-fg shadow-sm transition-all hover:bg-accent hover:shadow-md sm:w-auto"
             >
-              Start a Business
+              Start Business Workspace
               <ArrowRight className="size-4" strokeWidth={2} />
             </Link>
             <Link
@@ -63,7 +64,7 @@ export function HeroSection() {
               hash="platform"
               className="inline-flex min-h-12 w-full items-center justify-center rounded-[var(--radius-sm)] border border-border bg-surface px-7 text-sm font-semibold text-fg transition-colors hover:border-accent hover:text-accent sm:w-auto"
             >
-              Explore Legal Tools
+              Explore Compliance Tools
             </Link>
           </div>
 

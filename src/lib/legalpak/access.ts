@@ -53,3 +53,15 @@ export async function requireMatterAccess(userId: string, matterId: string) {
   if (!rows[0]) throw new ForbiddenError();
   return rows[0];
 }
+
+export async function requireObligationAccess(userId: string, obligationId: string) {
+  const sql = await getSql();
+  const rows = await sql<{ id: string; workspace_id: string; company_id: string; status: string }>`
+    select o.id, o.workspace_id, o.company_id, o.status
+    from compliance_obligation o
+    join workspace_member wm on wm.workspace_id = o.workspace_id
+    where o.id = ${obligationId} and wm.user_id = ${userId}
+  `;
+  if (!rows[0]) throw new ForbiddenError();
+  return rows[0];
+}

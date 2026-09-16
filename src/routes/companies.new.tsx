@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { listWorkspacesFn, type Workspace } from "@/lib/legalpak/workspaces";
-import { createCompanyFn, type CompanyInput } from "@/lib/legalpak/companies";
+import { createCompanyFn, COMPANY_TYPES, COMPANY_TYPE_LABEL, type CompanyInput } from "@/lib/legalpak/companies";
+import { useCompanyContext } from "@/lib/legalpak/company-context";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 
@@ -28,6 +29,10 @@ const empty = {
   agmDate: "",
   publicLinked: false,
   hasSubsidiary: false,
+  registeredAddress: "",
+  businessActivity: "",
+  province: "",
+  city: "",
 };
 
 function NewCompanyPage() {
@@ -39,6 +44,7 @@ function NewCompanyPage() {
 
 function NewCompanyForm() {
   const navigate = useNavigate();
+  const { refresh: refreshSwitcher, setSelectedCompanyId } = useCompanyContext();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [form, setForm] = useState(empty);
   const [submitting, setSubmitting] = useState(false);
@@ -73,11 +79,17 @@ function NewCompanyForm() {
       agmDate: form.agmDate || undefined,
       publicLinked: form.publicLinked,
       hasSubsidiary: form.hasSubsidiary,
+      registeredAddress: form.registeredAddress.trim() || undefined,
+      businessActivity: form.businessActivity.trim() || undefined,
+      province: form.province.trim() || undefined,
+      city: form.city.trim() || undefined,
     };
     setSubmitting(true);
     try {
       const company = await createCompanyFn({ data: input });
       toast.success("Company created");
+      setSelectedCompanyId(company.id);
+      refreshSwitcher();
       navigate({ to: "/companies/$companyId", params: { companyId: company.id } });
     } catch {
       toast.error("Could not create company");
@@ -109,11 +121,11 @@ function NewCompanyForm() {
           </Field>
           <Field label="Company type">
             <Select value={form.companyType} onChange={(e) => set("companyType", e.target.value)}>
-              <option value="smc">Single member company</option>
-              <option value="private">Private limited</option>
-              <option value="public">Public unlisted</option>
-              <option value="listed">Listed</option>
-              <option value="s42">Section 42 / NPO</option>
+              {COMPANY_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {COMPANY_TYPE_LABEL[t]}
+                </option>
+              ))}
             </Select>
           </Field>
           <Field label="Paid-up capital (PKR)">
@@ -150,6 +162,22 @@ function NewCompanyForm() {
               min={0}
               value={form.employees}
               onChange={(e) => set("employees", e.target.value)}
+            />
+          </Field>
+          <Field label="Registered address" className="sm:col-span-2">
+            <Input value={form.registeredAddress} onChange={(e) => set("registeredAddress", e.target.value)} />
+          </Field>
+          <Field label="City">
+            <Input value={form.city} onChange={(e) => set("city", e.target.value)} />
+          </Field>
+          <Field label="Province">
+            <Input value={form.province} onChange={(e) => set("province", e.target.value)} />
+          </Field>
+          <Field label="Business activity" className="sm:col-span-2">
+            <Input
+              value={form.businessActivity}
+              onChange={(e) => set("businessActivity", e.target.value)}
+              placeholder="e.g. Software development and IT consulting"
             />
           </Field>
           <label className="flex min-h-11 items-center gap-2 text-sm">

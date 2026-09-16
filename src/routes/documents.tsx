@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import { FolderOpen } from "lucide-react";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { listWorkspacesFn, type Workspace } from "@/lib/legalpak/workspaces";
+import { useCompanyContext } from "@/lib/legalpak/company-context";
 import { DocumentVault } from "@/components/document-vault";
+import { cn } from "@/lib/cn";
 
 export const Route = createFileRoute("/documents")({
   component: DocumentsPage,
@@ -28,17 +29,16 @@ function DocumentsPage() {
 }
 
 function DocumentsBody() {
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const { workspace, companies, selectedCompanyId } = useCompanyContext();
+  const [scopeToCompany, setScopeToCompany] = useState(true);
 
+  // Re-scope to the header switcher's choice whenever it changes — a local
+  // "All companies" toggle here is a temporary view, not an override.
   useEffect(() => {
-    listWorkspacesFn()
-      .then((rows) => setWorkspace(rows[0] ?? null))
-      .catch(() => setWorkspace(null))
-      .finally(() => setLoaded(true));
-  }, []);
+    setScopeToCompany(true);
+  }, [selectedCompanyId]);
 
-  if (!loaded) return null;
+  if (workspace === undefined) return null;
 
   if (!workspace) {
     return (
@@ -55,6 +55,9 @@ function DocumentsBody() {
     );
   }
 
+  const selectedCompany = companies.find((c) => c.id === selectedCompanyId) ?? null;
+  const scoped = scopeToCompany && selectedCompany;
+
   return (
     <div className="space-y-6">
       <div>
@@ -67,11 +70,46 @@ function DocumentsBody() {
         </p>
       </div>
 
-      <div className="flex items-center gap-2 text-sm text-muted">
-        <FolderOpen className="size-4" strokeWidth={1.75} />
-        To add a document, open a company page and upload it there — it'll appear here automatically.
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm text-muted">
+          <FolderOpen className="size-4" strokeWidth={1.75} />
+          To add a document, open a company page and upload it there — it'll appear here automatically.
+        </div>
+        {selectedCompany && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setScopeToCompany(true)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium",
+                scoped ? "border-primary bg-primary text-primary-fg" : "border-border text-muted",
+              )}
+            >
+              {selectedCompany.name}
+            </button>
+            <button
+              type="button"
+              onClick={() => setScopeToCompany(false)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium",
+                !scoped ? "border-primary bg-primary text-primary-fg" : "border-border text-muted",
+              )}
+            >
+              All companies
+            </button>
+          </div>
+        )}
       </div>
-      <DocumentVault scope={{ type: "workspace", workspaceId: workspace.id }} title="All documents" />
+
+      {scoped ? (
+        <DocumentVault
+          key={scoped.id}
+          scope={{ type: "company", companyId: scoped.id }}
+          title={`${scoped.name} documents`}
+        />
+      ) : (
+        <DocumentVault scope={{ type: "workspace", workspaceId: workspace.id }} title="All documents" />
+      )}
     </div>
   );
 }

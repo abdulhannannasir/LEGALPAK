@@ -3,17 +3,19 @@ import { z } from "zod";
 import { del, get, put } from "@vercel/blob";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
+import { addDaysISO, todayISO } from "@/lib/legal/date";
 import { createId } from "./id";
-import { requireCompanyAccess, requireMatterAccess, requireWorkspaceAccess } from "./access";
+import { requireCompanyAccess, requireMatterAccess, requireObligationAccess, requireWorkspaceAccess } from "./access";
 import { logAudit } from "./audit";
 
 export const DOCUMENT_CATEGORIES = [
   "corporate",
   "secp",
-  "tax",
-  "contracts",
   "directors",
   "shareholders",
+  "contracts",
+  "tax",
+  "employment",
   "notices",
   "other",
 ] as const;
@@ -22,31 +24,66 @@ export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number];
 export const DOCUMENT_CATEGORY_LABEL: Record<DocumentCategory, string> = {
   corporate: "Corporate",
   secp: "SECP",
-  tax: "Tax",
-  contracts: "Contracts",
   directors: "Directors",
   shareholders: "Shareholders",
+  contracts: "Contracts",
+  tax: "Tax",
+  employment: "Employment",
   notices: "Legal Notices",
   other: "Other",
 };
+
+export const DOCUMENT_STATUSES = ["active", "archived"] as const;
+export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
+
+/** Badge shown in the UI — "active"/"archived" are the stored `status`; "expired" and "review_due" are derived from the dates so they can never go stale. */
+export type DocumentStatusBadge = "active" | "archived" | "expired" | "review_due";
+
+export const DOCUMENT_STATUS_BADGE_LABEL: Record<DocumentStatusBadge, string> = {
+  active: "Active",
+  archived: "Archived",
+  expired: "Expired",
+  review_due: "Review due",
+};
+
+export function deriveDocumentStatusBadge(
+  doc: Pick<Document, "status" | "expiry_date" | "review_date">,
+): DocumentStatusBadge {
+  if (doc.status === "archived") return "archived";
+  const today = todayISO();
+  if (doc.expiry_date && doc.expiry_date < today) return "expired";
+  if (doc.review_date) {
+    const soonCutoff = addDaysISO(today, 30) ?? today;
+    if (doc.review_date <= soonCutoff) return "review_due";
+  }
+  return "active";
+}
 
 export type Document = {
   id: string;
   workspace_id: string;
   company_id: string;
   matter_id: string | null;
+  obligation_id: string | null;
   uploaded_by: string;
   name: string;
+  description: string | null;
+  notes: string | null;
   blob_pathname: string;
   mime_type: string | null;
   file_size: number | null;
   category: DocumentCategory;
+  status: DocumentStatus;
+  expiry_date: string | null;
+  review_date: string | null;
   version: number;
   created_at: string;
   updated_at: string;
 };
 
 export type DocumentWithCompany = Document & { company_name: string };
+export type DocumentWithLink = Document & { matter_title: string | null; matter_type: string | null };
+export type DocumentWithCompanyAndLink = DocumentWithCompany & { matter_title: string | null; matter_type: string | null };
 
 export type DocumentVersion = {
   id: string;
@@ -62,8 +99,9 @@ export type DocumentVersion = {
 };
 
 const DOCUMENT_COLUMNS = `
-  id, workspace_id, company_id, matter_id, uploaded_by, name, blob_pathname, mime_type, file_size,
-  category, version,
+  id, workspace_id, company_id, matter_id, obligation_id, uploaded_by, name, description, notes,
+  blob_pathname, mime_type, file_size,
+  category, status, expiry_date::text as expiry_date, review_date::text as review_date, version,
   created_at::text as created_at, updated_at::text as updated_at
 `;
 
@@ -77,17 +115,31 @@ const categorySchema = z.enum(DOCUMENT_CATEGORIES);
 const uploadSchema = z.object({
   companyId: z.string().min(1),
   matterId: z.string().min(1).optional(),
+  obligationId: z.string().min(1).optional(),
   name: z.string().trim().min(1),
   mimeType: z.string().optional(),
   base64: z.string().min(1),
   category: categorySchema.optional(),
+  description: z.string().trim().optional(),
+  expiryDate: z.string().optional(),
+  reviewDate: z.string().optional(),
 });
 
 const listDocumentsSchema = z.object({
   companyId: z.string().min(1),
   /** When set, only documents attached to this specific matter (not the whole company). */
   matterId: z.string().min(1).optional(),
+  /** When set, only documents attached to this specific compliance obligation. */
+  obligationId: z.string().min(1).optional(),
 });
+
+const DOCUMENT_COLUMNS_WITH_LINK = `
+  d.id, d.workspace_id, d.company_id, d.matter_id, d.obligation_id, d.uploaded_by, d.name, d.description, d.notes,
+  d.blob_pathname, d.mime_type, d.file_size,
+  d.category, d.status, d.expiry_date::text as expiry_date, d.review_date::text as review_date, d.version,
+  d.created_at::text as created_at, d.updated_at::text as updated_at,
+  m.title as matter_title, m.type as matter_type
+`;
 
 export const listDocumentsFn = createServerFn({ method: "GET" })
   .validator((input: z.infer<typeof listDocumentsSchema>) => listDocumentsSchema.parse(input))
@@ -95,14 +147,26 @@ export const listDocumentsFn = createServerFn({ method: "GET" })
   .handler(async ({ context, data: input }) => {
     await requireCompanyAccess(context.userId, input.companyId);
     const sql = await getSql();
+    if (input.obligationId) {
+      return sql.query<DocumentWithLink>(
+        `select ${DOCUMENT_COLUMNS_WITH_LINK}
+         from document d left join matter m on m.id = d.matter_id
+         where d.company_id = $1 and d.obligation_id = $2 order by d.updated_at desc`,
+        [input.companyId, input.obligationId],
+      );
+    }
     if (input.matterId) {
-      return sql.query<Document>(
-        `select ${DOCUMENT_COLUMNS} from document where company_id = $1 and matter_id = $2 order by updated_at desc`,
+      return sql.query<DocumentWithLink>(
+        `select ${DOCUMENT_COLUMNS_WITH_LINK}
+         from document d left join matter m on m.id = d.matter_id
+         where d.company_id = $1 and d.matter_id = $2 order by d.updated_at desc`,
         [input.companyId, input.matterId],
       );
     }
-    return sql.query<Document>(
-      `select ${DOCUMENT_COLUMNS} from document where company_id = $1 order by updated_at desc`,
+    return sql.query<DocumentWithLink>(
+      `select ${DOCUMENT_COLUMNS_WITH_LINK}
+       from document d left join matter m on m.id = d.matter_id
+       where d.company_id = $1 order by d.updated_at desc`,
       [input.companyId],
     );
   });
@@ -114,13 +178,15 @@ export const listWorkspaceDocumentsFn = createServerFn({ method: "GET" })
   .handler(async ({ context, data: workspaceId }) => {
     await requireWorkspaceAccess(context.userId, workspaceId);
     const sql = await getSql();
-    return sql.query<DocumentWithCompany>(
-      `select d.id, d.workspace_id, d.company_id, d.matter_id, d.uploaded_by, d.name, d.blob_pathname,
-              d.mime_type, d.file_size, d.category, d.version,
+    return sql.query<DocumentWithCompanyAndLink>(
+      `select d.id, d.workspace_id, d.company_id, d.matter_id, d.obligation_id, d.uploaded_by, d.name, d.description, d.notes,
+              d.blob_pathname, d.mime_type, d.file_size, d.category, d.status,
+              d.expiry_date::text as expiry_date, d.review_date::text as review_date, d.version,
               d.created_at::text as created_at, d.updated_at::text as updated_at,
-              c.name as company_name
+              c.name as company_name, m.title as matter_title, m.type as matter_type
        from document d
        join company c on c.id = d.company_id
+       left join matter m on m.id = d.matter_id
        where d.workspace_id = $1
        order by d.updated_at desc`,
       [workspaceId],
@@ -133,6 +199,7 @@ export const uploadDocumentFn = createServerFn({ method: "POST" })
   .handler(async ({ context, data: input }) => {
     const company = await requireCompanyAccess(context.userId, input.companyId);
     if (input.matterId) await requireMatterAccess(context.userId, input.matterId);
+    if (input.obligationId) await requireObligationAccess(context.userId, input.obligationId);
 
     const buffer = Buffer.from(input.base64, "base64");
     if (buffer.byteLength > MAX_FILE_BYTES) {
@@ -150,20 +217,25 @@ export const uploadDocumentFn = createServerFn({ method: "POST" })
     const sql = await getSql();
     const rows = await sql.query<Document>(
       `insert into document (
-        id, workspace_id, company_id, matter_id, uploaded_by, name, blob_pathname, mime_type, file_size, category
-      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+        id, workspace_id, company_id, matter_id, obligation_id, uploaded_by, name, description, blob_pathname, mime_type, file_size,
+        category, expiry_date, review_date
+      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
       returning ${DOCUMENT_COLUMNS}`,
       [
         id,
         company.workspace_id,
         input.companyId,
         input.matterId ?? null,
+        input.obligationId ?? null,
         context.userId,
         input.name,
+        input.description || null,
         blob.pathname,
         input.mimeType ?? null,
         buffer.byteLength,
         input.category ?? "other",
+        input.expiryDate || null,
+        input.reviewDate || null,
       ],
     );
     const doc = rows[0];
@@ -177,6 +249,17 @@ export const uploadDocumentFn = createServerFn({ method: "POST" })
       entityId: doc.id,
       metadata: { name: doc.name, fileSize: doc.file_size ?? null, category: doc.category },
     }).catch(() => {});
+    if (doc.obligation_id) {
+      logAudit({
+        workspaceId: doc.workspace_id,
+        companyId: doc.company_id,
+        userId: context.userId,
+        action: "OBLIGATION_DOCUMENT_UPLOADED",
+        entityType: "compliance_obligation",
+        entityId: doc.obligation_id,
+        metadata: { name: doc.name },
+      }).catch(() => {});
+    }
     return doc;
   });
 
@@ -218,6 +301,91 @@ export const updateDocumentFn = createServerFn({ method: "POST" })
       entityType: "document",
       entityId: updated.id,
       metadata: { name: updated.name, category: updated.category },
+    }).catch(() => {});
+    return updated;
+  });
+
+const updateDetailsSchema = z.object({
+  documentId: z.string().min(1),
+  description: z.string().trim().optional(),
+  notes: z.string().trim().optional(),
+  status: z.enum(DOCUMENT_STATUSES).optional(),
+  expiryDate: z.string().nullable().optional(),
+  reviewDate: z.string().nullable().optional(),
+});
+
+/** Edits the descriptive fields — description, notes, active/archived status, expiry/review dates. */
+export const updateDocumentDetailsFn = createServerFn({ method: "POST" })
+  .validator((input: z.infer<typeof updateDetailsSchema>) => updateDetailsSchema.parse(input))
+  .middleware([authMiddleware])
+  .handler(async ({ context, data: input }) => {
+    const doc = await loadDocumentForAccess(context.userId, input.documentId);
+    const sql = await getSql();
+    const rows = await sql.query<Document>(
+      `update document set
+        description = $2, notes = $3, status = $4, expiry_date = $5, review_date = $6, updated_at = now()
+       where id = $1
+       returning ${DOCUMENT_COLUMNS}`,
+      [
+        doc.id,
+        input.description !== undefined ? input.description || null : doc.description,
+        input.notes !== undefined ? input.notes || null : doc.notes,
+        input.status ?? doc.status,
+        input.expiryDate !== undefined ? input.expiryDate || null : doc.expiry_date,
+        input.reviewDate !== undefined ? input.reviewDate || null : doc.review_date,
+      ],
+    );
+    const updated = rows[0];
+    logAudit({
+      workspaceId: updated.workspace_id,
+      companyId: updated.company_id,
+      matterId: updated.matter_id ?? undefined,
+      userId: context.userId,
+      action: "DOCUMENT_DETAILS_UPDATED",
+      entityType: "document",
+      entityId: updated.id,
+      metadata: { name: updated.name, status: updated.status },
+    }).catch(() => {});
+    return updated;
+  });
+
+const linkSchema = z.object({
+  documentId: z.string().min(1),
+  matterId: z.string().min(1).nullable(),
+});
+
+/** Attaches (or detaches) a document to/from a matter — the same link a compliance obligation or a contract already is. */
+export const linkDocumentFn = createServerFn({ method: "POST" })
+  .validator((input: z.infer<typeof linkSchema>) => linkSchema.parse(input))
+  .middleware([authMiddleware])
+  .handler(async ({ context, data: input }) => {
+    const doc = await loadDocumentForAccess(context.userId, input.documentId);
+    let matterTitle: string | null = null;
+    if (input.matterId) {
+      const matter = await requireMatterAccess(context.userId, input.matterId);
+      if (matter.company_id !== doc.company_id) {
+        throw new Error("Can only link to a matter on the same company");
+      }
+      const rows = await (await getSql()).query<{ title: string }>(`select title from matter where id = $1`, [
+        input.matterId,
+      ]);
+      matterTitle = rows[0]?.title ?? null;
+    }
+    const sql = await getSql();
+    const rows = await sql.query<Document>(
+      `update document set matter_id = $2, updated_at = now() where id = $1 returning ${DOCUMENT_COLUMNS}`,
+      [doc.id, input.matterId],
+    );
+    const updated = rows[0];
+    logAudit({
+      workspaceId: updated.workspace_id,
+      companyId: updated.company_id,
+      matterId: updated.matter_id ?? undefined,
+      userId: context.userId,
+      action: input.matterId ? "DOCUMENT_LINKED" : "DOCUMENT_UNLINKED",
+      entityType: "document",
+      entityId: updated.id,
+      metadata: { name: updated.name, matterTitle },
     }).catch(() => {});
     return updated;
   });
@@ -318,6 +486,16 @@ export const downloadDocumentFn = createServerFn({ method: "GET" })
     const result = await get(doc.blob_pathname, { access: "private" });
     if (!result || result.statusCode !== 200) throw new Error("File not found in storage");
     const arrayBuffer = await new Response(result.stream).arrayBuffer();
+    logAudit({
+      workspaceId: doc.workspace_id,
+      companyId: doc.company_id,
+      matterId: doc.matter_id ?? undefined,
+      userId: context.userId,
+      action: "DOCUMENT_DOWNLOADED",
+      entityType: "document",
+      entityId: doc.id,
+      metadata: { name: doc.name },
+    }).catch(() => {});
     return {
       name: doc.name,
       mimeType: doc.mime_type,

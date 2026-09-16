@@ -14,7 +14,7 @@ import { logAudit } from "./audit";
  */
 const ADMIN_EMAILS = ["hannan262002@gmail.com"];
 
-async function requireAdmin(userId: string): Promise<void> {
+export async function requireAdmin(userId: string): Promise<void> {
   const sql = await getSql();
   const rows = await sql<{ email: string }>`select email from "user" where id = ${userId}`;
   const email = rows[0]?.email;
