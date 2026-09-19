@@ -31,6 +31,9 @@ export type UnifiedComplianceItem = {
   recurring: boolean;
   configurationRequired: boolean;
   href: string;
+  /** Matter-backed items only — lets the company health dashboard tell a Form A from a Form 9 and word its next step. */
+  matterType?: string;
+  matterStatus?: string;
 };
 
 const MATTER_CATEGORY: Record<string, ComplianceCategory> = {
@@ -58,6 +61,8 @@ export function matterItemToUnified(item: ComplianceItem): UnifiedComplianceItem
     recurring: false,
     configurationRequired: derived.health === "unscheduled",
     href: `/matters/${item.id}`,
+    matterType: item.type,
+    matterStatus: item.status,
   };
 }
 
