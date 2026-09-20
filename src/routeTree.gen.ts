@@ -63,7 +63,9 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronDeadlineRemindersRouteImport } from './routes/api/cron/deadline-reminders'
 import { Route as CompaniesCompanyIdDocumentsRouteImport } from './routes/companies.$companyId_.documents'
 import { Route as CompaniesCompanyIdEditRouteImport } from './routes/companies.$companyId_.edit'
+import { Route as CompaniesCompanyIdEmployeesRouteImport } from './routes/companies.$companyId_.employees'
 import { Route as CompaniesCompanyIdSettingsRouteImport } from './routes/companies.$companyId_.settings'
+import { Route as CompaniesCompanyIdEmployeesEmployeeIdRouteImport } from './routes/companies.$companyId_.employees_.$employeeId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -338,10 +340,22 @@ const CompaniesCompanyIdEditRoute = CompaniesCompanyIdEditRouteImport.update({
   path: '/companies/$companyId/edit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompaniesCompanyIdEmployeesRoute =
+  CompaniesCompanyIdEmployeesRouteImport.update({
+    id: '/companies/$companyId_/employees',
+    path: '/companies/$companyId/employees',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const CompaniesCompanyIdSettingsRoute =
   CompaniesCompanyIdSettingsRouteImport.update({
     id: '/companies/$companyId_/settings',
     path: '/companies/$companyId/settings',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CompaniesCompanyIdEmployeesEmployeeIdRoute =
+  CompaniesCompanyIdEmployeesEmployeeIdRouteImport.update({
+    id: '/companies/$companyId_/employees_/$employeeId',
+    path: '/companies/$companyId/employees/$employeeId',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -400,7 +414,9 @@ export interface FileRoutesByFullPath {
   '/api/cron/deadline-reminders': typeof ApiCronDeadlineRemindersRoute
   '/companies/$companyId/documents': typeof CompaniesCompanyIdDocumentsRoute
   '/companies/$companyId/edit': typeof CompaniesCompanyIdEditRoute
+  '/companies/$companyId/employees': typeof CompaniesCompanyIdEmployeesRoute
   '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
+  '/companies/$companyId/employees/$employeeId': typeof CompaniesCompanyIdEmployeesEmployeeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -457,7 +473,9 @@ export interface FileRoutesByTo {
   '/api/cron/deadline-reminders': typeof ApiCronDeadlineRemindersRoute
   '/companies/$companyId/documents': typeof CompaniesCompanyIdDocumentsRoute
   '/companies/$companyId/edit': typeof CompaniesCompanyIdEditRoute
+  '/companies/$companyId/employees': typeof CompaniesCompanyIdEmployeesRoute
   '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
+  '/companies/$companyId/employees/$employeeId': typeof CompaniesCompanyIdEmployeesEmployeeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -515,7 +533,9 @@ export interface FileRoutesById {
   '/api/cron/deadline-reminders': typeof ApiCronDeadlineRemindersRoute
   '/companies/$companyId_/documents': typeof CompaniesCompanyIdDocumentsRoute
   '/companies/$companyId_/edit': typeof CompaniesCompanyIdEditRoute
+  '/companies/$companyId_/employees': typeof CompaniesCompanyIdEmployeesRoute
   '/companies/$companyId_/settings': typeof CompaniesCompanyIdSettingsRoute
+  '/companies/$companyId_/employees_/$employeeId': typeof CompaniesCompanyIdEmployeesEmployeeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -574,7 +594,9 @@ export interface FileRouteTypes {
     | '/api/cron/deadline-reminders'
     | '/companies/$companyId/documents'
     | '/companies/$companyId/edit'
+    | '/companies/$companyId/employees'
     | '/companies/$companyId/settings'
+    | '/companies/$companyId/employees/$employeeId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -631,7 +653,9 @@ export interface FileRouteTypes {
     | '/api/cron/deadline-reminders'
     | '/companies/$companyId/documents'
     | '/companies/$companyId/edit'
+    | '/companies/$companyId/employees'
     | '/companies/$companyId/settings'
+    | '/companies/$companyId/employees/$employeeId'
   id:
     | '__root__'
     | '/'
@@ -688,7 +712,9 @@ export interface FileRouteTypes {
     | '/api/cron/deadline-reminders'
     | '/companies/$companyId_/documents'
     | '/companies/$companyId_/edit'
+    | '/companies/$companyId_/employees'
     | '/companies/$companyId_/settings'
+    | '/companies/$companyId_/employees_/$employeeId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -746,7 +772,9 @@ export interface RootRouteChildren {
   ApiCronDeadlineRemindersRoute: typeof ApiCronDeadlineRemindersRoute
   CompaniesCompanyIdDocumentsRoute: typeof CompaniesCompanyIdDocumentsRoute
   CompaniesCompanyIdEditRoute: typeof CompaniesCompanyIdEditRoute
+  CompaniesCompanyIdEmployeesRoute: typeof CompaniesCompanyIdEmployeesRoute
   CompaniesCompanyIdSettingsRoute: typeof CompaniesCompanyIdSettingsRoute
+  CompaniesCompanyIdEmployeesEmployeeIdRoute: typeof CompaniesCompanyIdEmployeesEmployeeIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1129,11 +1157,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompaniesCompanyIdEditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/companies/$companyId_/employees': {
+      id: '/companies/$companyId_/employees'
+      path: '/companies/$companyId/employees'
+      fullPath: '/companies/$companyId/employees'
+      preLoaderRoute: typeof CompaniesCompanyIdEmployeesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/companies/$companyId_/settings': {
       id: '/companies/$companyId_/settings'
       path: '/companies/$companyId/settings'
       fullPath: '/companies/$companyId/settings'
       preLoaderRoute: typeof CompaniesCompanyIdSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/companies/$companyId_/employees_/$employeeId': {
+      id: '/companies/$companyId_/employees_/$employeeId'
+      path: '/companies/$companyId/employees/$employeeId'
+      fullPath: '/companies/$companyId/employees/$employeeId'
+      preLoaderRoute: typeof CompaniesCompanyIdEmployeesEmployeeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -1194,7 +1236,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronDeadlineRemindersRoute: ApiCronDeadlineRemindersRoute,
   CompaniesCompanyIdDocumentsRoute: CompaniesCompanyIdDocumentsRoute,
   CompaniesCompanyIdEditRoute: CompaniesCompanyIdEditRoute,
+  CompaniesCompanyIdEmployeesRoute: CompaniesCompanyIdEmployeesRoute,
   CompaniesCompanyIdSettingsRoute: CompaniesCompanyIdSettingsRoute,
+  CompaniesCompanyIdEmployeesEmployeeIdRoute:
+    CompaniesCompanyIdEmployeesEmployeeIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

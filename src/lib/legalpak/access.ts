@@ -65,3 +65,15 @@ export async function requireObligationAccess(userId: string, obligationId: stri
   if (!rows[0]) throw new ForbiddenError();
   return rows[0];
 }
+
+export async function requireEmployeeAccess(userId: string, employeeId: string) {
+  const sql = await getSql();
+  const rows = await sql<{ id: string; workspace_id: string; company_id: string; full_name: string; status: string }>`
+    select e.id, e.workspace_id, e.company_id, e.full_name, e.status
+    from employee e
+    join workspace_member wm on wm.workspace_id = e.workspace_id
+    where e.id = ${employeeId} and wm.user_id = ${userId}
+  `;
+  if (!rows[0]) throw new ForbiddenError();
+  return rows[0];
+}

@@ -23,6 +23,8 @@ import { listMattersFn, createMatterFn, type Matter } from "@/lib/legalpak/matte
 import { MATTER_TYPE_LABEL, STATUS_LABEL, type MatterType } from "@/lib/legalpak/workflow";
 import { deriveCompliance, listComplianceItemsFn, type ComplianceItem } from "@/lib/legalpak/compliance";
 import { listDocumentsFn, type Document } from "@/lib/legalpak/documents";
+import { listEmployeesFn, type EmployeeWithContract } from "@/lib/legalpak/employees";
+import { EMPLOYMENT_TYPE_LABEL } from "@/lib/legal/punjab-employment-contract";
 import { listCompanyActivityFn, type AuditLogRow } from "@/lib/legalpak/audit";
 import { describeAuditRow, formatAuditTimestamp } from "@/components/activity-timeline";
 import { Button } from "@/components/ui/button";
@@ -58,6 +60,7 @@ function CompanyBody() {
   const [company, setCompany] = useState<Company | null>(null);
   const [matters, setMatters] = useState<Matter[]>([]);
   const [documents, setDocuments] = useState<Document[] | null>(null);
+  const [employees, setEmployees] = useState<EmployeeWithContract[] | null>(null);
   const [complianceItems, setComplianceItems] = useState<ComplianceItem[] | null>(null);
   const [activity, setActivity] = useState<AuditLogRow[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,14 +71,16 @@ function CompanyBody() {
     try {
       const c = await getCompanyFn({ data: companyId });
       setCompany(c);
-      const [m, docs, act, compliance] = await Promise.all([
+      const [m, docs, act, compliance, staff] = await Promise.all([
         listMattersFn({ data: companyId }),
         listDocumentsFn({ data: { companyId } }).catch(() => []),
         listCompanyActivityFn({ data: companyId }).catch(() => []),
         listComplianceItemsFn({ data: c.workspace_id }).catch(() => []),
+        listEmployeesFn({ data: companyId }).catch(() => []),
       ]);
       setMatters(m);
       setDocuments(docs);
+      setEmployees(staff);
       setActivity(act);
       setComplianceItems(compliance.filter((i) => i.company_id === companyId));
     } catch {
@@ -172,7 +177,15 @@ function CompanyBody() {
               {company.ntn ? ` · NTN ${company.ntn}` : ""}
             </p>
           </div>
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Link
+              to="/companies/$companyId/employees"
+              params={{ companyId }}
+              className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] border border-border bg-surface px-4 text-sm font-medium hover:border-accent"
+            >
+              <Users className="size-4" strokeWidth={1.75} />
+              Employees
+            </Link>
             <Link
               to="/companies/$companyId/edit"
               params={{ companyId }}
@@ -331,6 +344,72 @@ function CompanyBody() {
           )}
         </section>
       </div>
+
+      <section>
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 className="font-display text-xl">Employees</h2>
+          <Link
+            to="/companies/$companyId/employees"
+            params={{ companyId }}
+            className="text-sm text-accent underline underline-offset-2"
+          >
+            {employees && employees.length > 0 ? "Manage employees →" : "Add employees →"}
+          </Link>
+        </div>
+        {employees === null ? (
+          <SkeletonRows className="mt-3" count={2} />
+        ) : employees.length === 0 ? (
+          <EmptyState
+            className="mt-3"
+            text="No employees on file. Add an employee to keep a staff register and generate a custom employment contract under the Punjab Labour Code 2026."
+            cta={
+              <Link
+                to="/companies/$companyId/employees"
+                params={{ companyId }}
+                className="inline-flex min-h-9 items-center rounded-[var(--radius-sm)] border border-border px-3 text-sm font-medium hover:border-accent"
+              >
+                Add an employee
+              </Link>
+            }
+          />
+        ) : (
+          <div className="mt-3 space-y-2">
+            {employees
+              .filter((e) => e.status === "active")
+              .slice(0, 5)
+              .map((e) => (
+                <Link
+                  key={e.id}
+                  to="/companies/$companyId/employees/$employeeId"
+                  params={{ companyId, employeeId: e.id }}
+                  className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 hover:border-accent"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{e.full_name}</p>
+                    <p className="text-xs text-muted">
+                      {e.job_title} · {EMPLOYMENT_TYPE_LABEL[e.employment_type]}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+                      e.contract_version !== null ? "border-success text-success" : "border-warn text-warn",
+                    )}
+                  >
+                    {e.contract_version !== null ? `Contract v${e.contract_version}` : "No contract"}
+                  </span>
+                </Link>
+              ))}
+            <p className="text-xs text-muted">
+              {employees.filter((e) => e.status === "active").length} active employee
+              {employees.filter((e) => e.status === "active").length === 1 ? "" : "s"}
+              {employees.some((e) => e.status === "active" && e.contract_version === null)
+                ? ` · ${employees.filter((e) => e.status === "active" && e.contract_version === null).length} without a written contract`
+                : ""}
+            </p>
+          </div>
+        )}
+      </section>
 
       <section>
         <h2 className="font-display text-xl">Start a matter</h2>

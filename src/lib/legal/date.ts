@@ -46,6 +46,17 @@ export function todayISO(): string {
   return toISO(new Date());
 }
 
+/**
+ * Today's date on the user's own clock. `todayISO()` above is the UTC date, which
+ * for Pakistan (UTC+5) is still "yesterday" until 5 am — fine for deadline math,
+ * wrong for a date the user is about to sign or record as "today". Browser-side use only.
+ */
+export function localTodayISO(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 /** Whole days from `a` to `b` (negative when `a` is after `b`), e.g. days remaining until a deadline. */
 export function diffDaysISO(a: string, b: string): number | null {
   const da = parseISO(a);

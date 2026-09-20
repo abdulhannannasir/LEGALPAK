@@ -36,6 +36,13 @@ const ACTION_LABEL: Record<string, (m: Record<string, unknown>) => string> = {
   OBLIGATION_COMPLETED: () => "Marked complete",
   OBLIGATION_NOTE_ADDED: () => "Note added",
   OBLIGATION_DOCUMENT_UPLOADED: (m) => `Uploaded ${m.name ?? "a document"}`,
+  EMPLOYEE_ADDED: (m) => `Employee added${m.name ? ` (${m.name}${m.jobTitle ? `, ${m.jobTitle}` : ""})` : ""}`,
+  EMPLOYEE_UPDATED: (m) => `Employee details updated${m.name ? ` (${m.name})` : ""}`,
+  EMPLOYEE_STATUS_CHANGED: (m) =>
+    `${m.name ?? "Employee"} marked as ${m.status === "former" ? "having left" : "active again"}`,
+  EMPLOYEE_REMOVED: (m) => `Employee removed${m.name ? ` (${m.name})` : ""}`,
+  EMPLOYEE_CONTRACT_SAVED: (m) =>
+    `Employment contract v${m.version ?? "?"} saved${m.name ? ` for ${m.name}` : ""}`,
 };
 
 export function describeAuditRow(row: AuditLogRow): string {
