@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { createId } from "@/lib/legalpak/id";
 import { askGemini } from "./gemini";
-import { loadHistory } from "./history";
+import { loadHistory, loadTranscript, saveExchange } from "./history";
 import { CITIZEN_ADVISOR_SYSTEM_PROMPT } from "./system-prompt";
 
 function hashToken(token: string): string {
@@ -22,12 +22,7 @@ const CHAT_TOPICS = [
 ] as const;
 export type ChatTopic = (typeof CHAT_TOPICS)[number];
 
-export type ChatMessage = {
-  id: string;
-  sender: "user" | "assistant";
-  content: string;
-  created_at: string;
-};
+export type { ChatMessage } from "./history";
 
 /**
  * Sends one citizen message and returns the AI's reply. Works anonymously —
@@ -73,11 +68,6 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
     const history = await loadHistory(sql, sessionId);
     history.push({ role: "user", text: input.message });
 
-    await sql.query(
-      `insert into chat_message (id, session_id, sender, content) values ($1, $2, 'user', $3)`,
-      [createId("msg"), sessionId, input.message],
-    );
-
     let reply: string;
     try {
       reply = await askGemini(CITIZEN_ADVISOR_SYSTEM_PROMPT, history);
@@ -87,10 +77,16 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
         "Sorry, I couldn't reach the legal advisor service just now. Please try again in a moment, or use the lawyer directory to speak with a verified advocate directly.";
     }
 
-    await sql.query(
-      `insert into chat_message (id, session_id, sender, content) values ($1, $2, 'assistant', $3)`,
-      [createId("msg"), sessionId, reply],
-    );
+    // Stored only now, as one unit — a send still waiting on the model leaves no half-finished
+    // exchange for an overlapping send to load (see saveExchange).
+    await saveExchange(sql, {
+      sessionId,
+      questionId: createId("msg"),
+      question: input.message,
+      replyId: createId("msg"),
+      reply,
+      at: new Date(),
+    });
 
     return { sessionId, sessionToken, reply };
   });
@@ -109,9 +105,5 @@ export const getChatHistoryFn = createServerFn({ method: "POST" })
     if (!session || session.session_token_hash !== hashToken(input.sessionToken)) {
       throw new Error("Invalid or expired chat session");
     }
-    return sql.query<ChatMessage>(
-      `select id, sender, content, created_at::text as created_at
-       from chat_message where session_id = $1 order by created_at asc`,
-      [input.sessionId],
-    );
+    return loadTranscript(sql, input.sessionId);
   });

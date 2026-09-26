@@ -3,7 +3,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import type { ChatTurn } from "./gemini.ts";
-import { HISTORY_LIMIT, keepPairedExchanges, loadHistory, type HistoryDb } from "./history.ts";
+import {
+  HISTORY_LIMIT,
+  keepPairedExchanges,
+  loadHistory,
+  loadTranscript,
+  saveExchange,
+  type HistoryDb,
+} from "./history.ts";
 
 const u = (text: string): ChatTurn => ({ role: "user", text });
 const m = (text: string): ChatTurn => ({ role: "model", text });
@@ -42,7 +49,7 @@ describe("keepPairedExchanges", () => {
   });
 });
 
-describe("loadHistory", () => {
+describe("stored history", () => {
   let pg: PGlite;
   let db: HistoryDb;
 
@@ -125,5 +132,71 @@ describe("loadHistory", () => {
   it("is empty for a session with no messages", async () => {
     await pg.query(`insert into chat_session (id) values ('empty')`);
     assert.deepEqual(await loadHistory(db, "empty"), []);
+  });
+
+  describe("exchanges stored with saveExchange", () => {
+    const at = (seconds: number) => new Date(Date.UTC(2026, 0, 1, 0, 0, seconds));
+    let nextId = 0;
+    const exchange = (sessionId: string, label: string, when: Date) =>
+      saveExchange(db, {
+        sessionId,
+        questionId: `q${++nextId}`,
+        question: `q-${label}`,
+        replyId: `r${++nextId}`,
+        reply: `a-${label}`,
+        at: when,
+      });
+
+    it("keeps every question next to its own answer when overlapping sends finish out of order", async () => {
+      // Four sends started in the order A, B, C, D but finished B, D, A, C. Storing the question
+      // first and the answer later would have interleaved them; each exchange is written whole.
+      await pg.query(`insert into chat_session (id) values ('race')`);
+      await exchange("race", "B", at(1));
+      await exchange("race", "D", at(2));
+      await exchange("race", "A", at(3));
+      await exchange("race", "C", at(4));
+
+      const expected = ["q-B", "a-B", "q-D", "a-D", "q-A", "a-A", "q-C", "a-C"];
+      assert.deepEqual(texts(await loadHistory(db, "race")), expected);
+      assert.deepEqual((await loadTranscript(db, "race")).map((r) => r.content), expected);
+    });
+
+    it("leaves out two exchanges stamped at the same instant instead of crossing them", async () => {
+      await pg.query(`insert into chat_session (id) values ('tie')`);
+      await exchange("tie", "A", at(1));
+      await exchange("tie", "B", at(1));
+
+      // No way to order them, so neither reaches the model — but neither is mispaired either.
+      assert.deepEqual(await loadHistory(db, "tie"), []);
+      assert.equal((await loadTranscript(db, "tie")).length, 4);
+    });
+
+    it("shows a question above its own reply even though both carry the same timestamp", async () => {
+      await pg.query(`insert into chat_session (id) values ('order')`);
+      for (let i = 1; i <= 12; i++) await exchange("order", String(i), at(i));
+
+      const transcript = await loadTranscript(db, "order");
+      assert.deepEqual(
+        transcript.map((r) => r.sender),
+        Array.from({ length: 12 }, () => ["user", "assistant"]).flat(),
+      );
+      assert.deepEqual(
+        texts(await loadHistory(db, "order")),
+        Array.from({ length: 10 }, (_, i) => [`q-${i + 3}`, `a-${i + 3}`]).flat(),
+      );
+    });
+
+    it("writes exactly the question and its reply for one exchange", async () => {
+      await pg.query(`insert into chat_session (id) values ('single')`);
+      await exchange("single", "only", at(1));
+
+      const stored = await db.query<{ sender: string; content: string }>(
+        `select sender, content from chat_message where session_id = 'single' order by sender desc`,
+      );
+      assert.deepEqual(stored, [
+        { sender: "user", content: "q-only" },
+        { sender: "assistant", content: "a-only" },
+      ]);
+    });
   });
 });
