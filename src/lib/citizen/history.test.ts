@@ -137,15 +137,8 @@ describe("stored history", () => {
   describe("exchanges stored with saveExchange", () => {
     const at = (seconds: number) => new Date(Date.UTC(2026, 0, 1, 0, 0, seconds));
     let nextId = 0;
-    const exchange = (sessionId: string, label: string, when: Date) =>
-      saveExchange(db, {
-        sessionId,
-        questionId: `q${++nextId}`,
-        question: `q-${label}`,
-        replyId: `r${++nextId}`,
-        reply: `a-${label}`,
-        at: when,
-      });
+    const exchange = (sessionId: string, label: string, when: Date, id = `ex${++nextId}`) =>
+      saveExchange(db, { sessionId, id, question: `q-${label}`, reply: `a-${label}`, at: when });
 
     it("keeps every question next to its own answer when overlapping sends finish out of order", async () => {
       // Four sends started in the order A, B, C, D but finished B, D, A, C. Storing the question
@@ -161,14 +154,36 @@ describe("stored history", () => {
       assert.deepEqual((await loadTranscript(db, "race")).map((r) => r.content), expected);
     });
 
-    it("leaves out two exchanges stamped at the same instant instead of crossing them", async () => {
+    it("keeps both exchanges when two finish in the same millisecond", async () => {
       await pg.query(`insert into chat_session (id) values ('tie')`);
-      await exchange("tie", "A", at(1));
-      await exchange("tie", "B", at(1));
+      // Stored A first, but B's id sorts first: the tie is settled by id, and each exchange
+      // stays whole either way round.
+      await exchange("tie", "A", at(1), "z");
+      await exchange("tie", "B", at(1), "a");
 
-      // No way to order them, so neither reaches the model — but neither is mispaired either.
-      assert.deepEqual(await loadHistory(db, "tie"), []);
-      assert.equal((await loadTranscript(db, "tie")).length, 4);
+      const expected = ["q-B", "a-B", "q-A", "a-A"];
+      assert.deepEqual(texts(await loadHistory(db, "tie")), expected);
+      assert.deepEqual((await loadTranscript(db, "tie")).map((r) => r.content), expected);
+    });
+
+    it("does not depend on the order tied rows happen to be stored in", async () => {
+      await pg.query(`insert into chat_session (id) values ('scrambled')`);
+      // Two exchanges at one instant whose rows are stored reply-first and interleaved — the
+      // shape an unordered tie, or one broken by `sender`, would hand back as user, user, model, model.
+      const row = (id: string, sender: "user" | "assistant", content: string) =>
+        pg.query(
+          `insert into chat_message (id, session_id, sender, content, created_at)
+           values ($1, 'scrambled', $2, $3, timestamptz '2026-01-01 00:00:05+00')`,
+          [id, sender, content],
+        );
+      await row("m.r", "assistant", "a-A");
+      await row("n.q", "user", "q-B");
+      await row("m.q", "user", "q-A");
+      await row("n.r", "assistant", "a-B");
+
+      const expected = ["q-A", "a-A", "q-B", "a-B"];
+      assert.deepEqual(texts(await loadHistory(db, "scrambled")), expected);
+      assert.deepEqual((await loadTranscript(db, "scrambled")).map((r) => r.content), expected);
     });
 
     it("shows a question above its own reply even though both carry the same timestamp", async () => {
@@ -186,17 +201,31 @@ describe("stored history", () => {
       );
     });
 
-    it("writes exactly the question and its reply for one exchange", async () => {
+    it("writes exactly the question and its reply for one exchange, stamped with the same instant", async () => {
       await pg.query(`insert into chat_session (id) values ('single')`);
-      await exchange("single", "only", at(1));
+      await exchange("single", "only", at(1), "solo");
 
-      const stored = await db.query<{ sender: string; content: string }>(
-        `select sender, content from chat_message where session_id = 'single' order by sender desc`,
+      const stored = await db.query<{ id: string; sender: string; content: string; created_at: Date }>(
+        `select id, sender, content, created_at from chat_message where session_id = 'single' order by id collate "C"`,
       );
-      assert.deepEqual(stored, [
-        { sender: "user", content: "q-only" },
-        { sender: "assistant", content: "a-only" },
-      ]);
+      assert.deepEqual(
+        stored.map(({ id, sender, content }) => ({ id, sender, content })),
+        [
+          { id: "solo.q", sender: "user", content: "q-only" },
+          { id: "solo.r", sender: "assistant", content: "a-only" },
+        ],
+      );
+      // Both halves carry the model's answer time exactly — a later reply stamp would let another
+      // exchange's rows land between them.
+      assert.deepEqual(
+        stored.map((r) => r.created_at.getTime()),
+        [at(1).getTime(), at(1).getTime()],
+      );
+    });
+
+    it("refuses an exchange id containing a dot", async () => {
+      await pg.query(`insert into chat_session (id) values ('dotted')`);
+      await assert.rejects(exchange("dotted", "x", at(1), "a.b"), /must not contain/);
     });
   });
 });

@@ -17,13 +17,24 @@ export type HistoryDb = {
 
 export type Exchange = {
   sessionId: string;
-  questionId: string;
+  /** Names the exchange; the two stored rows' ids are derived from it (`<id>.q`, `<id>.r`). Must not contain a `.`. */
+  id: string;
   question: string;
-  replyId: string;
   reply: string;
   /** When the model answered — stamped on both rows. */
   at: Date;
 };
+
+/**
+ * Chronological order for chat rows. A row's timestamp has millisecond precision and both
+ * halves of an exchange share theirs, so two exchanges that finish in the same millisecond
+ * tie. Ties fall back to the id, compared as bytes (`"C"` collation, so the result doesn't
+ * depend on the database's locale). `saveExchange` gives one exchange ids that share a prefix
+ * and end `.q` / `.r`, so an id-ordered run keeps each exchange together with its question
+ * first — a tie can never interleave two exchanges' rows.
+ */
+const CHRONOLOGICAL = `created_at asc, id collate "C" asc`;
+const NEWEST_FIRST = `created_at desc, id collate "C" desc`;
 
 /**
  * Stores a question and its answer as one unit: a single statement, both rows carrying the
@@ -32,18 +43,20 @@ export type Exchange = {
  * the two halves of an exchange. That is what makes "a user turn immediately followed by a
  * model turn" mean "this question and its answer" for everything written here.
  *
- * The two rows share a timestamp, so the read queries break the tie with `sender` to keep
- * the question ahead of its reply.
+ * The row ids are what keep exchanges apart when timestamps tie — see `CHRONOLOGICAL`.
  */
 export async function saveExchange(db: HistoryDb, exchange: Exchange): Promise<void> {
+  // Ids sharing a prefix only stay contiguous in id order if no other exchange's id can
+  // continue this one's, which a `.` in an id would allow.
+  if (exchange.id.includes(".")) throw new Error("Exchange id must not contain '.'");
   await db.query(
     `insert into chat_message (id, session_id, sender, content, created_at)
      values ($1, $2, 'user', $3, $6::timestamptz), ($4, $2, 'assistant', $5, $6::timestamptz)`,
     [
-      exchange.questionId,
+      `${exchange.id}.q`,
       exchange.sessionId,
       exchange.question,
-      exchange.replyId,
+      `${exchange.id}.r`,
       exchange.reply,
       exchange.at.toISOString(),
     ],
@@ -90,11 +103,10 @@ export function keepPairedExchanges(turns: ChatTurn[]): ChatTurn[] {
 
 /** The session's most recent exchanges, oldest first, ready to precede the new question. */
 export async function loadHistory(db: HistoryDb, sessionId: string): Promise<ChatTurn[]> {
-  // Newest first so the limit keeps the latest messages, then flipped back into chronological
-  // order. `sender asc` is the reverse of the tie-break used for chronological order below.
+  // Newest first so the limit keeps the latest messages, then flipped back into chronological order.
   const rows = await db.query<{ sender: "user" | "assistant"; content: string }>(
     `select sender, content from chat_message where session_id = $1
-     order by created_at desc, sender asc limit $2`,
+     order by ${NEWEST_FIRST} limit $2`,
     [sessionId, HISTORY_LIMIT],
   );
   return keepPairedExchanges(
@@ -106,10 +118,9 @@ export async function loadHistory(db: HistoryDb, sessionId: string): Promise<Cha
 
 /** The whole conversation, oldest first, for showing it back to the user. */
 export async function loadTranscript(db: HistoryDb, sessionId: string): Promise<ChatMessage[]> {
-  // `sender desc` puts a question ahead of its reply when both carry the same timestamp.
   return db.query<ChatMessage>(
     `select id, sender, content, created_at::text as created_at
-     from chat_message where session_id = $1 order by created_at asc, sender desc`,
+     from chat_message where session_id = $1 order by ${CHRONOLOGICAL}`,
     [sessionId],
   );
 }

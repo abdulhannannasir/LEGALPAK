@@ -81,9 +81,8 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
     // exchange for an overlapping send to load (see saveExchange).
     await saveExchange(sql, {
       sessionId,
-      questionId: createId("msg"),
+      id: createId("msg"),
       question: input.message,
-      replyId: createId("msg"),
       reply,
       at: new Date(),
     });
