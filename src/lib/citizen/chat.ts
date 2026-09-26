@@ -33,10 +33,16 @@ const HISTORY_LIMIT = 20;
 async function loadHistory(sessionId: string): Promise<ChatTurn[]> {
   const sql = await getSql();
   const rows = await sql.query<{ sender: "user" | "assistant"; content: string }>(
-    `select sender, content from chat_message where session_id = $1 order by created_at asc limit $2`,
+    `select sender, content from chat_message where session_id = $1 order by created_at desc limit $2`,
     [sessionId, HISTORY_LIMIT],
   );
-  return rows.map((r) => ({ role: r.sender === "user" ? "user" : "model", text: r.content }));
+  // Newest-N window, flipped back to chronological order for the model.
+  const turns = rows
+    .reverse()
+    .map((r): ChatTurn => ({ role: r.sender === "user" ? "user" : "model", text: r.content }));
+  // The window can start mid-exchange; Gemini expects the conversation to open with a user turn.
+  while (turns.length > 0 && turns[0].role === "model") turns.shift();
+  return turns;
 }
 
 /**
