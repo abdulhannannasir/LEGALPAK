@@ -3,6 +3,7 @@ import { randomBytes, createHash } from "node:crypto";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { createId } from "@/lib/legalpak/id";
+import { INVALID_SESSION_MESSAGE } from "./chat-session";
 import { askGemini } from "./gemini";
 import { loadHistory, loadTranscript, saveExchange } from "./history";
 import { CITIZEN_ADVISOR_SYSTEM_PROMPT } from "./system-prompt";
@@ -29,6 +30,11 @@ export type { ChatMessage } from "./history";
  * a fresh session gets a random token (returned once, stored by the client
  * like the client-approval flow's hashed tokens); an existing session must
  * present the matching token to append to it.
+ *
+ * If the model can't be reached this throws and stores nothing — no unanswered
+ * question, no session, no apology saved as if the advisor had said it — so the
+ * next turn's history stays clean and the page can hand the user's text back for
+ * a retry.
  */
 export const sendChatMessageFn = createServerFn({ method: "POST" })
   .validator(
@@ -37,13 +43,14 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
         .object({
           sessionId: z.string().min(1).optional(),
           sessionToken: z.string().min(1).optional(),
-          message: z.string().min(1).max(4000),
+          message: z.string().trim().min(1).max(4000),
           topic: z.enum(CHAT_TOPICS).optional(),
         })
         .parse(input),
   )
   .handler(async ({ data: input }) => {
     const sql = await getSql();
+    const isNewSession = !input.sessionId;
     let sessionId = input.sessionId;
     let sessionToken = input.sessionToken;
 
@@ -54,18 +61,14 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
       );
       const session = rows[0];
       if (!session || !sessionToken || session.session_token_hash !== hashToken(sessionToken)) {
-        throw new Error("Invalid or expired chat session");
+        throw new Error(INVALID_SESSION_MESSAGE);
       }
     } else {
       sessionId = createId("chat");
       sessionToken = randomBytes(24).toString("hex");
-      await sql.query(
-        `insert into chat_session (id, session_token_hash, topic) values ($1, $2, $3)`,
-        [sessionId, hashToken(sessionToken), input.topic ?? null],
-      );
     }
 
-    const history = await loadHistory(sql, sessionId);
+    const history = isNewSession ? [] : await loadHistory(sql, sessionId);
     history.push({ role: "user", text: input.message });
 
     let reply: string;
@@ -73,10 +76,18 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
       reply = await askGemini(CITIZEN_ADVISOR_SYSTEM_PROMPT, history);
     } catch (err) {
       console.error("askGemini failed:", err);
-      reply =
-        "Sorry, I couldn't reach the legal advisor service just now. Please try again in a moment, or use the lawyer directory to speak with a verified advocate directly.";
+      // Deliberately generic — the underlying cause (missing key, upstream error) stays in the server log.
+      throw new Error("The legal advisor is unavailable right now");
     }
 
+    // A new session is only created once there is a reply to store in it, so a failed first
+    // message leaves no empty session behind whose token the client never received.
+    if (isNewSession) {
+      await sql.query(
+        `insert into chat_session (id, session_token_hash, topic) values ($1, $2, $3)`,
+        [sessionId, hashToken(sessionToken), input.topic ?? null],
+      );
+    }
     // Stored only now, as one unit — a send still waiting on the model leaves no half-finished
     // exchange for an overlapping send to load (see saveExchange).
     await saveExchange(sql, {
@@ -102,7 +113,7 @@ export const getChatHistoryFn = createServerFn({ method: "POST" })
     );
     const session = rows[0];
     if (!session || session.session_token_hash !== hashToken(input.sessionToken)) {
-      throw new Error("Invalid or expired chat session");
+      throw new Error(INVALID_SESSION_MESSAGE);
     }
     return loadTranscript(sql, input.sessionId);
   });
