@@ -9,6 +9,7 @@ import {
   Landmark,
   LayoutDashboard,
   LifeBuoy,
+  ListTodo,
   Menu,
   Scale,
   Settings as SettingsIcon,
@@ -26,6 +27,7 @@ import { CompanySwitcher } from "@/components/company-switcher";
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/companies", label: "Companies", icon: Building2 },
+  { to: "/tasks", label: "Tasks", icon: ListTodo },
   { to: "/compliance", label: "Compliance", icon: CalendarClock },
   { to: "/secp", label: "SECP", icon: FileSignature },
   { to: "/documents", label: "Documents", icon: FolderOpen },
