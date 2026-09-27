@@ -27,31 +27,28 @@ export function addDaysISO(iso: string, days: number): string | null {
   return toISO(d);
 }
 
-function daysInMonth(year: number, month: number): number {
-  return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-}
-
 /**
- * A month-end date (the 28th–31st, whichever ends its own month) stays anchored to the *end* of
- * whatever month it lands on, not to that day number — otherwise a single short month clamp
- * permanently drifts every later occurrence earlier. Jan 31 -> Feb 28 -> Mar 31 -> Apr 30 -> May
- * 31 keeps repeating on each month's last day forever; without this, the chain would instead
- * settle on the 28th (Jan 31 -> Feb 28 -> Mar 28 -> Apr 28 -> ...) once the first short month
- * clamped it. Any other day of the month (the common case) is unaffected: it clamps only when the
- * target month is too short, exactly as before.
+ * Adds calendar months to a one-time date (an incorporation date, a joining date, a fixed offset
+ * from either): the same day-of-month N months later, clamped to the target month's last day only
+ * when it's too short to have that day at all. Deliberately NOT "sticky" to month-end — whether a
+ * date like Feb 28 was chosen because it's the 28th or because it's Feb's last day is genuinely
+ * ambiguous from the value alone, and guessing "always month-end" moves one-time deadlines later
+ * than intended (Feb 28 + 3 months becoming May 31 instead of May 28) and lets a manually chosen
+ * recurring day silently turn into a different, month-end-anchored one after a single short-month
+ * clamp. A rule-generated recurring obligation, which must never drift or land on the wrong day at
+ * all, does not use this for its next due date — see spawnNextOccurrence's own comment.
  */
 export function addMonthsISO(iso: string, months: number): string | null {
   const d = parseISO(iso);
   if (!d) return null;
   const day = d.getUTCDate();
-  const wasMonthEnd = day === daysInMonth(d.getUTCFullYear(), d.getUTCMonth());
   // Move to the 1st before shifting months so setUTCMonth can't overflow into a later month by
   // landing on a day the target month doesn't have (e.g. Jan 31 -> "Feb 31", which JS normalizes
-  // to Mar 2/3).
+  // to Mar 2/3) — then clamp back to the target month's last day if it's shorter than the original.
   d.setUTCDate(1);
   d.setUTCMonth(d.getUTCMonth() + months);
-  const targetMonthLength = daysInMonth(d.getUTCFullYear(), d.getUTCMonth());
-  d.setUTCDate(wasMonthEnd ? targetMonthLength : Math.min(day, targetMonthLength));
+  const daysInTargetMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, daysInTargetMonth));
   return toISO(d);
 }
 
