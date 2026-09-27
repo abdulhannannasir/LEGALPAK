@@ -9,7 +9,8 @@ import { diffDaysISO, todayISO } from "./date.ts";
  *
  * Deliberately honest about what it doesn't know:
  *  - an item with no computed deadline ("Configuration required") is never
- *    scored — guessing would fabricate either a pass or a fail;
+ *    scored — guessing would fabricate either a pass or a fail — and neither
+ *    is a completed item with no deadline, which can't be placed in a period;
  *  - a standing requirement that hasn't been started as a matter is listed as
  *    "not tracked yet", never as a failure;
  *  - with nothing scoreable there is NO score (null), not a flattering 100.
@@ -82,7 +83,9 @@ export function classifyItem<T extends HealthItem>(item: T, today: string): Scor
   const days = item.dueDate ? diffDaysISO(today, item.dueDate) : null;
 
   if (item.status === "completed") {
-    const withinLookback = days === null || days >= -COMPLETED_LOOKBACK_DAYS;
+    // Without a deadline there's no telling which period a completion belongs to, so it can't vouch for this one:
+    // an undated completion is shown but never scored (otherwise it would read as a permanent 100).
+    const withinLookback = days !== null && days >= -COMPLETED_LOOKBACK_DAYS;
     return { item, health: "completed", daysUntilDue: days, weight, counted: withinLookback };
   }
   if (days === null) return { item, health: "needs_setup", daysUntilDue: null, weight, counted: false };
@@ -220,9 +223,28 @@ export const STANDING_REQUIREMENTS = [
 
 export type StandingRequirement = (typeof STANDING_REQUIREMENTS)[number];
 
-/** Standing requirements with no matter of that type on file at all (a filed/closed matter still counts as tracked). */
-export function findUntrackedRequirements(items: HealthItem[]): StandingRequirement[] {
-  const tracked = new Set(items.filter((i) => i.kind === "matter" && i.matterType).map((i) => i.matterType));
+/**
+ * Standing requirements with no matter tracking them. An open matter always
+ * counts, and so does a filing completed within the last year — but one whose
+ * deadline is more than a year past is last cycle's, and must not hide the
+ * absence of this cycle's.
+ *
+ * Known limit: a completed matter with NO deadline still counts as tracked
+ * forever, because its age is unknowable. Income Tax Return matters never get
+ * a computed deadline, so treating undated ones as stale would nag straight
+ * after every filing.
+ */
+export function findUntrackedRequirements(items: HealthItem[], today: string = todayISO()): StandingRequirement[] {
+  const tracked = new Set(
+    items
+      .filter((i) => {
+        if (i.kind !== "matter" || !i.matterType) return false;
+        if (i.status !== "completed" || !i.dueDate) return true;
+        const days = diffDaysISO(today, i.dueDate);
+        return days === null || days >= -COMPLETED_LOOKBACK_DAYS;
+      })
+      .map((i) => i.matterType),
+  );
   return STANDING_REQUIREMENTS.filter((r) => !tracked.has(r.matterType));
 }
 

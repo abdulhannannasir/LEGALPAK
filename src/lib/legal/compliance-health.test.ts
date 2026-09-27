@@ -47,6 +47,12 @@ describe("classifyItem", () => {
     assert.equal(s.counted, false);
   });
 
+  it("never counts a completed item that has no deadline — it can't be placed in a period", () => {
+    const s = classifyItem(item({ id: "a", status: "completed", dueDate: null }), TODAY);
+    assert.equal(s.health, "completed");
+    assert.equal(s.counted, false);
+  });
+
   it("stops counting a completed item once its deadline is over a year old", () => {
     assert.equal(classifyItem(item({ id: "a", status: "completed", dueDate: "2026-01-01" }), TODAY).counted, true);
     assert.equal(classifyItem(item({ id: "a", status: "completed", dueDate: "2024-01-01" }), TODAY).counted, false);
@@ -60,6 +66,14 @@ describe("summarizeCompliance", () => {
     assert.equal(onlySetup.score, null);
     assert.equal(onlySetup.band, "not_scored");
     assert.equal(onlySetup.counts.needs_setup, 1);
+  });
+
+  it("does not let an undated completion produce a score by itself", () => {
+    const s = summarizeCompliance([item({ id: "a", status: "completed", dueDate: null })], TODAY);
+    assert.equal(s.score, null);
+    assert.equal(s.band, "not_scored");
+    assert.equal(s.counts.completed, 1);
+    assert.equal(s.scoredCount, 0);
   });
 
   it("scores 100 when everything is on track or completed", () => {
@@ -210,6 +224,36 @@ describe("findUntrackedRequirements", () => {
       untracked.map((r) => r.matterType),
       ["FINANCIAL_STATEMENTS", "INCOME_TAX_RETURN"],
     );
+  });
+});
+
+describe("findUntrackedRequirements — stale filings", () => {
+  const matter = (type: string, over: Partial<HealthItem>) =>
+    item({ id: type + (over.dueDate ?? "x"), kind: "matter", matterType: type, ...over });
+  const untrackedTypes = (items: HealthItem[]) => findUntrackedRequirements(items, TODAY).map((r) => r.matterType);
+
+  it("stops treating a filing completed over a year ago as tracking this cycle", () => {
+    const old = matter("FORM_A", { status: "completed", dueDate: "2025-06-01" });
+    assert.ok(untrackedTypes([old]).includes("FORM_A"));
+  });
+
+  it("still counts a filing completed within the last year", () => {
+    const recent = matter("FORM_A", { status: "completed", dueDate: "2026-03-01" });
+    assert.ok(!untrackedTypes([recent]).includes("FORM_A"));
+  });
+
+  it("counts an open matter however old its deadline, and an undated completed one (its age is unknowable)", () => {
+    const openOverdue = matter("FORM_A", { status: "overdue", dueDate: "2024-01-01" });
+    const undatedFiled = matter("INCOME_TAX_RETURN", { status: "completed", dueDate: null });
+    const types = untrackedTypes([openOverdue, undatedFiled]);
+    assert.ok(!types.includes("FORM_A"));
+    assert.ok(!types.includes("INCOME_TAX_RETURN"));
+  });
+
+  it("lets a fresh matter for this cycle stand alongside last cycle's filed one", () => {
+    const last = matter("FORM_A", { status: "completed", dueDate: "2025-06-01" });
+    const current = matter("FORM_A", { status: "upcoming", dueDate: "2026-10-10" });
+    assert.ok(!untrackedTypes([last, current]).includes("FORM_A"));
   });
 });
 

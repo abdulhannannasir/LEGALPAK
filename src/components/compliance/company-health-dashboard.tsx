@@ -333,8 +333,8 @@ function ScoreCard({ summary }: { summary: HealthSummary }) {
           {PRIORITY_WEIGHT.high} · Critical {PRIORITY_WEIGHT.critical}). Completed and on-track items earn full credit,
           items due within {DUE_SOON_DAYS} days earn {Math.round(HEALTH_CREDIT.due_soon * 100)}%, and overdue items earn
           none. The score is credit earned ÷ weight tracked, and any overdue item holds it at {OVERDUE_SCORE_CAP} or
-          below. Items with no computed deadline aren't scored, and completed filings stop counting a year after their
-          deadline.
+          below. Items with no computed deadline (including completed ones) aren't scored, and completed filings stop
+          counting a year after their deadline.
         </p>
       </details>
     </section>
