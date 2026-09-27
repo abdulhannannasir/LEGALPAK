@@ -337,26 +337,52 @@ function periodKeyForDue(recurrenceRule: string, dueIso: string): string {
   return `${year}-Q${Math.ceil(month / 3)}`;
 }
 
+/**
+ * The calendar date immediately after periodKey's own period ends — annual ("YYYY"), monthly
+ * ("YYYY-MM") or quarterly ("YYYY-QN"), detected from the string itself rather than trusted from
+ * the completed obligation's (possibly stale, if the rule's frequency changed since) recurrence_rule.
+ * Advancing from the period rather than from the due date matters because an offset can put the
+ * due date in a later calendar month than the period it belongs to (a January-evaluated monthly
+ * rule due Feb 10) — advancing from that due date instead of from the period's own end would skip
+ * whatever period the offset crossed into. Returns null for a shape this doesn't recognize (e.g.
+ * "once", or a legacy/malformed key).
+ */
+function periodEndExclusive(periodKey: string): string | null {
+  if (/^\d{4}$/.test(periodKey)) return `${Number(periodKey) + 1}-01-01`;
+  const monthly = /^(\d{4})-(\d{2})$/.exec(periodKey);
+  if (monthly) {
+    const year = Number(monthly[1]);
+    const month = Number(monthly[2]);
+    const [nextYear, nextMonth] = month === 12 ? [year + 1, 1] : [year, month + 1];
+    return `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+  }
+  const quarterly = /^(\d{4})-Q([1-4])$/.exec(periodKey);
+  if (quarterly) {
+    const year = Number(quarterly[1]);
+    const quarter = Number(quarterly[2]);
+    const [nextYear, nextStartMonth] = quarter === 4 ? [year + 1, 1] : [year, quarter * 3 + 1];
+    return `${nextYear}-${String(nextStartMonth).padStart(2, "0")}-01`;
+  }
+  return null;
+}
+
 async function spawnNextOccurrence(completed: ComplianceObligation, userId: string): Promise<void> {
   if (!completed.due_date || !completed.recurrence_rule) return;
-  const months = completed.recurrence_rule === "annual" ? 12 : completed.recurrence_rule === "quarterly" ? 3 : 1;
   const sql = await getSql();
 
   let nextDue: string | null;
   let periodKey: string | null;
+  let recurrenceRule: string;
   if (completed.rule_id) {
-    // Rule-generated: recompute fresh from the rule's own current recurrence config and the
+    // Rule-generated: recompute fresh from the rule's own CURRENT recurrence config and the
     // company's current data — exactly what evaluateForCompany would do — rather than chaining
-    // date math off the previous occurrence's due date. A month-end-anchored rule must always
-    // land on ITS target month's actual last day, and simple arithmetic on a possibly-already-
-    // clamped date can't tell "the anchor fell on a short month" apart from "this obligation is
-    // meant to track month-end", so it either drifts (chaining a clamped date forward) or
-    // over-corrects one-time deadlines that were never meant to be month-end (addMonthsISO no
-    // longer guesses either way — see its own comment). The reference date only needs to fall in
-    // the right month/quarter/year; every branch of computeRuleDueDate that matters here derives
-    // the actual day itself, so a still-possibly-clamped reference is harmless.
-    const reference = addMonthsISO(completed.due_date, months);
-    if (!reference) return;
+    // date math off the previous occurrence's due date or trusting this obligation's own
+    // (possibly stale, if an admin edited the rule since) recurrence_rule. Advancing from the
+    // period the completed obligation belongs to, not from its due date, means an offset that
+    // pushed the due date into a later month never causes a period to be skipped.
+    if (!completed.period_key) return;
+    const periodStart = periodEndExclusive(completed.period_key);
+    if (!periodStart) return;
     const [ruleRows, companyRows] = await Promise.all([
       sql.query<ComplianceRule>(
         `select id, name, authority, category, applicability_conditions, recurrence,
@@ -368,21 +394,27 @@ async function spawnNextOccurrence(completed: ComplianceObligation, userId: stri
     ]);
     const rule = ruleRows[0];
     const company = companyRows[0];
-    // No rule, no company, or a recurrence that can't currently resolve (e.g. an anchor date the
-    // company hasn't recorded) — don't substitute a guess. evaluateForCompany's own periodic
-    // re-scan will create the correctly-computed next occurrence once it can.
-    if (!rule?.recurrence || !company) return;
-    const computed = computeRuleDueDate(rule.recurrence, company, reference);
+    // No rule, no company, the rule no longer recurs at all (edited to "once"), or a recurrence
+    // that can't currently resolve (e.g. an anchor date the company hasn't recorded) — don't
+    // substitute a guess. evaluateForCompany's own periodic re-scan will create the correctly-
+    // computed next occurrence once it can (or, for "once", never — which is correct).
+    if (!rule?.recurrence || rule.recurrence.frequency === "once" || !company) return;
+    const computed = computeRuleDueDate(rule.recurrence, company, periodStart);
     if (!computed.dueDate || !computed.periodKey) return;
     nextDue = computed.dueDate;
     periodKey = computed.periodKey;
+    // Track the rule's current frequency, not this obligation's possibly-outdated one, so a later
+    // completion of THIS spawned row advances by whatever the rule says at that point.
+    recurrenceRule = rule.recurrence.frequency;
   } else {
     // Manually created: no rule to recompute from, so advance the stored due date by a plain
     // calendar-month step, clamped only when the target month is too short — the day the
     // obligation was set to recur on, preserved as literally as possible.
+    const months = completed.recurrence_rule === "annual" ? 12 : completed.recurrence_rule === "quarterly" ? 3 : 1;
     nextDue = addMonthsISO(completed.due_date, months);
     if (!nextDue) return;
     periodKey = periodKeyForDue(completed.recurrence_rule, nextDue);
+    recurrenceRule = completed.recurrence_rule;
   }
 
   const id = createId("cobl");
@@ -403,7 +435,7 @@ async function spawnNextOccurrence(completed: ComplianceObligation, userId: stri
       nextDue,
       completed.priority,
       true,
-      completed.recurrence_rule,
+      recurrenceRule,
       periodKey,
       JSON.stringify(completed.required_documents),
       userId,
