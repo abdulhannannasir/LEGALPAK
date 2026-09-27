@@ -30,7 +30,14 @@ export function addDaysISO(iso: string, days: number): string | null {
 export function addMonthsISO(iso: string, months: number): string | null {
   const d = parseISO(iso);
   if (!d) return null;
+  const day = d.getUTCDate();
+  // Move to the 1st before shifting months so setUTCMonth can't overflow into a later month by
+  // landing on a day the target month doesn't have (e.g. Jan 31 -> "Feb 31", which JS normalizes
+  // to Mar 2/3) — then clamp back to the target month's last day if it's shorter than the original.
+  d.setUTCDate(1);
   d.setUTCMonth(d.getUTCMonth() + months);
+  const daysInTargetMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, daysInTargetMonth));
   return toISO(d);
 }
 
