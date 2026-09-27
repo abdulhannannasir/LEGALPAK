@@ -328,6 +328,15 @@ export const changeObligationStatusFn = createServerFn({ method: "POST" })
     return obligation;
   });
 
+/** Same dedup-key shape computeRuleDueDate uses, keyed off the spawned occurrence's own due date rather than "today" — there is no reference date here, only the date the occurrence just advanced to. */
+function periodKeyForDue(recurrenceRule: string, dueIso: string): string {
+  if (recurrenceRule === "annual") return dueIso.slice(0, 4);
+  if (recurrenceRule === "monthly") return dueIso.slice(0, 7);
+  const year = Number(dueIso.slice(0, 4));
+  const month = Number(dueIso.slice(5, 7));
+  return `${year}-Q${Math.ceil(month / 3)}`;
+}
+
 async function spawnNextOccurrence(completed: ComplianceObligation, userId: string): Promise<void> {
   if (!completed.due_date || !completed.recurrence_rule) return;
   const months = completed.recurrence_rule === "annual" ? 12 : completed.recurrence_rule === "quarterly" ? 3 : 1;
@@ -338,8 +347,8 @@ async function spawnNextOccurrence(completed: ComplianceObligation, userId: stri
   await sql.query(
     `insert into compliance_obligation (
       id, workspace_id, company_id, rule_id, title, description, category, authority,
-      due_date, priority, recurring, recurrence_rule, required_documents, created_by
-    ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14)`,
+      due_date, priority, recurring, recurrence_rule, period_key, required_documents, created_by
+    ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,$15)`,
     [
       id,
       completed.workspace_id,
@@ -353,6 +362,7 @@ async function spawnNextOccurrence(completed: ComplianceObligation, userId: stri
       completed.priority,
       true,
       completed.recurrence_rule,
+      periodKeyForDue(completed.recurrence_rule, nextDue),
       JSON.stringify(completed.required_documents),
       userId,
     ],
@@ -495,7 +505,11 @@ async function evaluateForCompany(companyId: string, userId: string): Promise<nu
           [companyId, rule.id, periodKey],
         )
       : await sql.query(
-          `select id from compliance_obligation where company_id = $1 and rule_id = $2 and period_key is null and status != 'completed'`,
+          // No status filter: a rule with no computable period key has no "next occurrence" to
+          // advance to, so a completed row here must keep blocking recreation just like a
+          // periodKey match does above — otherwise re-checking requirements after completing it
+          // creates the same obligation again.
+          `select id from compliance_obligation where company_id = $1 and rule_id = $2 and period_key is null`,
           [companyId, rule.id],
         );
     if (existing[0]) continue;

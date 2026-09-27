@@ -207,6 +207,13 @@ export const createTaskFn = createServerFn({ method: "POST" })
         throw new Error("The document must belong to the same company");
       }
     }
+    if (input.assigneeId) {
+      const member = await (await getSql()).query(
+        `select 1 from workspace_member where workspace_id = $1 and user_id = $2`,
+        [company.workspace_id, input.assigneeId],
+      );
+      if (!member[0]) throw new Error("That person isn't a member of this workspace");
+    }
 
     const sql = await getSql();
     const id = createId("task");

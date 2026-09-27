@@ -368,10 +368,13 @@ export function DocumentVault({ scope, title = "Documents" }: { scope: DocumentV
       toast.success("Saved");
       setDetailsOpenId(null);
       setDetailsDraft(null);
-      refresh();
     } catch (e) {
+      // The details update may have already committed even though this threw (e.g. the link
+      // update failed afterward) — refresh regardless so the list shows what's actually saved
+      // instead of leaving the user unsure which of their changes took effect.
       toast.error(e instanceof Error ? e.message : "Could not save changes");
     } finally {
+      refresh();
       setBusyId(null);
     }
   }

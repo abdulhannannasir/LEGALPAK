@@ -375,12 +375,16 @@ export const updateDocumentDetailsFn = createServerFn({ method: "POST" })
     return updated;
   });
 
-const linkSchema = z.object({
-  documentId: z.string().min(1),
-  /** A document links to at most one of these at a time — picking one clears the other. */
-  matterId: z.string().min(1).nullable(),
-  obligationId: z.string().min(1).nullable(),
-});
+const linkSchema = z
+  .object({
+    documentId: z.string().min(1),
+    /** A document links to at most one of these at a time — picking one clears the other. */
+    matterId: z.string().min(1).nullable(),
+    obligationId: z.string().min(1).nullable(),
+  })
+  .refine((v) => !(v.matterId && v.obligationId), {
+    message: "A document can link to a matter or a compliance obligation, not both",
+  });
 
 /** Attaches (or detaches) a document to/from a matter (a contract, or an older SECP/FBR filing) or a compliance obligation. */
 export const linkDocumentFn = createServerFn({ method: "POST" })

@@ -144,7 +144,13 @@ export function computeRuleDueDate(
     if (recurrence.anchor && recurrence.anchor !== "period_end") {
       const anchorDate = company[ANCHOR_FIELD[recurrence.anchor]] as string | null;
       if (!anchorDate) return { dueDate: null, periodKey: null };
-      const due = addDaysISO(anchorDate, recurrence.offsetDays ?? 0);
+      // The company only records one instance of this date (e.g. the financial year end it last
+      // told us), but the obligation recurs every year on that same month/day — so re-anchor it to
+      // the reference year instead of reusing whatever year happens to be stored. Otherwise this
+      // permanently returns the original due date, and once that period has an obligation, no
+      // later year's ever gets created.
+      const thisCycleAnchor = `${year}-${anchorDate.slice(5, 10)}`;
+      const due = addDaysISO(thisCycleAnchor, recurrence.offsetDays ?? 0);
       return { dueDate: due, periodKey: due ? due.slice(0, 4) : null };
     }
     if (recurrence.fixedMonth && recurrence.fixedDay) {

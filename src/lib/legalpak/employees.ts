@@ -416,27 +416,38 @@ export const saveEmployeeContractFn = createServerFn({ method: "POST" })
   .handler(async ({ context, data: input }) => {
     const employee = await requireEmployeeAccess(context.userId, input.employeeId);
     const sql = await getSql();
-    const rows = await sql.query<{ id: string; version: number }>(
-      `insert into employee_contract (id, employee_id, workspace_id, company_id, version, title, body, snapshot, note, created_by)
-       values (
-         $1, $2, $3, $4,
-         (select coalesce(max(version), 0) + 1 from employee_contract where employee_id = $2),
-         $5, $6, $7::jsonb, $8, $9
-       )
-       returning id, version`,
-      [
-        createId("econtract"),
-        input.employeeId,
-        employee.workspace_id,
-        employee.company_id,
-        input.title,
-        input.body,
-        JSON.stringify(input.snapshot ?? {}),
-        input.note || null,
-        context.userId,
-      ],
-    );
-    const saved = rows[0];
+    // The next-version subquery and the insert aren't atomic, so two saves for the same employee
+    // starting at about the same time can compute the same version and one loses the unique
+    // constraint — retry a few times rather than dropping that member's reviewed draft.
+    let saved: { id: string; version: number } | undefined;
+    for (let attempt = 0; !saved && attempt < 5; attempt++) {
+      try {
+        const rows = await sql.query<{ id: string; version: number }>(
+          `insert into employee_contract (id, employee_id, workspace_id, company_id, version, title, body, snapshot, note, created_by)
+           values (
+             $1, $2, $3, $4,
+             (select coalesce(max(version), 0) + 1 from employee_contract where employee_id = $2),
+             $5, $6, $7::jsonb, $8, $9
+           )
+           returning id, version`,
+          [
+            createId("econtract"),
+            input.employeeId,
+            employee.workspace_id,
+            employee.company_id,
+            input.title,
+            input.body,
+            JSON.stringify(input.snapshot ?? {}),
+            input.note || null,
+            context.userId,
+          ],
+        );
+        saved = rows[0];
+      } catch (e) {
+        if (!(e instanceof Error && "code" in e && e.code === "23505") || attempt === 4) throw e;
+      }
+    }
+    if (!saved) throw new Error("Could not save the contract — please try again");
     logAudit({
       workspaceId: employee.workspace_id,
       companyId: employee.company_id,
