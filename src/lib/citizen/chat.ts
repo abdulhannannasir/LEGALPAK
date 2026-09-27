@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { randomBytes, createHash } from "node:crypto";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
+import { optionalAuthMiddleware } from "@/lib/auth/optional-middleware";
+import { requireActiveSubscription } from "@/lib/legalpak/billing";
 import { createId } from "@/lib/legalpak/id";
 import { askGemini, type ChatTurn } from "./gemini";
 import { CITIZEN_ADVISOR_SYSTEM_PROMPT, CORPORATE_COUNSEL_SYSTEM_PROMPT } from "./system-prompt";
@@ -65,7 +67,16 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
         })
         .parse(input),
   )
-  .handler(async ({ data: input }) => {
+  .middleware([optionalAuthMiddleware])
+  .handler(async ({ context, data: input }) => {
+    // The citizen chat stays free and anonymous, but `topic` is chosen by the caller and "corporate" selects the paid
+    // AI Counsel advisor — so the AI Counsel page's own gate isn't enough. Enforce sign-in and an active subscription
+    // here, on every message: the topic is re-sent each time, so checking only the first would be trivially bypassed.
+    if (input.topic === "corporate") {
+      if (!context.userId) throw new Error("Unauthorized");
+      await requireActiveSubscription(context.userId);
+    }
+
     const sql = await getSql();
     let sessionId = input.sessionId;
     let sessionToken = input.sessionToken;

@@ -150,7 +150,7 @@ export const listDocumentsFn = createServerFn({ method: "GET" })
     if (input.obligationId) {
       return sql.query<DocumentWithLink>(
         `select ${DOCUMENT_COLUMNS_WITH_LINK}
-         from document d left join matter m on m.id = d.matter_id
+         from document d left join matter m on m.id = d.matter_id and m.company_id = d.company_id
          where d.company_id = $1 and d.obligation_id = $2 order by d.updated_at desc`,
         [input.companyId, input.obligationId],
       );
@@ -158,14 +158,14 @@ export const listDocumentsFn = createServerFn({ method: "GET" })
     if (input.matterId) {
       return sql.query<DocumentWithLink>(
         `select ${DOCUMENT_COLUMNS_WITH_LINK}
-         from document d left join matter m on m.id = d.matter_id
+         from document d left join matter m on m.id = d.matter_id and m.company_id = d.company_id
          where d.company_id = $1 and d.matter_id = $2 order by d.updated_at desc`,
         [input.companyId, input.matterId],
       );
     }
     return sql.query<DocumentWithLink>(
       `select ${DOCUMENT_COLUMNS_WITH_LINK}
-       from document d left join matter m on m.id = d.matter_id
+       from document d left join matter m on m.id = d.matter_id and m.company_id = d.company_id
        where d.company_id = $1 order by d.updated_at desc`,
       [input.companyId],
     );
@@ -186,7 +186,7 @@ export const listWorkspaceDocumentsFn = createServerFn({ method: "GET" })
               c.name as company_name, m.title as matter_title, m.type as matter_type
        from document d
        join company c on c.id = d.company_id
-       left join matter m on m.id = d.matter_id
+       left join matter m on m.id = d.matter_id and m.company_id = d.company_id
        where d.workspace_id = $1
        order by d.updated_at desc`,
       [workspaceId],
@@ -198,8 +198,22 @@ export const uploadDocumentFn = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .handler(async ({ context, data: input }) => {
     const company = await requireCompanyAccess(context.userId, input.companyId);
-    if (input.matterId) await requireMatterAccess(context.userId, input.matterId);
-    if (input.obligationId) await requireObligationAccess(context.userId, input.obligationId);
+    // Each id above is authorized on its own, which is not enough: a member of two companies could otherwise file a
+    // document under company A while attaching company B's matter or obligation (and then company A's members would
+    // see B's matter title in the document list). The link must stay inside the document's own company — the same rule
+    // linkDocumentFn enforces. Checked before the blob upload so a rejected request leaves nothing behind.
+    if (input.matterId) {
+      const matter = await requireMatterAccess(context.userId, input.matterId);
+      if (matter.company_id !== input.companyId) {
+        throw new Error("Can only attach a document to a matter on the same company");
+      }
+    }
+    if (input.obligationId) {
+      const obligation = await requireObligationAccess(context.userId, input.obligationId);
+      if (obligation.company_id !== input.companyId) {
+        throw new Error("Can only attach a document to a compliance obligation on the same company");
+      }
+    }
 
     const buffer = Buffer.from(input.base64, "base64");
     if (buffer.byteLength > MAX_FILE_BYTES) {
