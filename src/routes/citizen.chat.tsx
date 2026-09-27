@@ -46,6 +46,7 @@ function CitizenChatPage() {
   const [input, setInput] = useState("");
   const [topic, setTopic] = useState<ChatTopic | undefined>(undefined);
   const [sending, setSending] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const session = useRef<StoredChatSession | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -56,13 +57,13 @@ function CitizenChatPage() {
     let cancelled = false;
     // The server keeps the conversation and the model keeps answering from it, so bring
     // the transcript back — a blank page after a reload would hide what it is replying to.
+    // Sending waits until this settles: a message sent mid-load would either be wiped by the
+    // transcript arriving or force a guess at which of its rows are already on screen.
+    setRestoring(true);
     getChatHistoryFn({ data: stored })
       .then((rows) => {
         if (cancelled) return;
-        // Leave it alone if the user already sent something while this was loading.
-        setMessages((prev) =>
-          prev.length > 0 ? prev : rows.map((r) => ({ role: r.sender, content: r.content })),
-        );
+        setMessages(rows.map((r) => ({ role: r.sender, content: r.content })));
       })
       .catch((err) => {
         // A session the server no longer knows is dead weight; forget it so the next send starts fresh.
@@ -70,6 +71,9 @@ function CitizenChatPage() {
           clearStoredSession(SESSION_KEY);
           session.current = null;
         }
+      })
+      .finally(() => {
+        if (!cancelled) setRestoring(false);
       });
     return () => {
       cancelled = true;
@@ -82,7 +86,7 @@ function CitizenChatPage() {
 
   async function send() {
     const message = input.trim();
-    if (!message || sending) return;
+    if (!message || sending || restoring) return;
     setInput("");
     setMessages((m) => [...m, { role: "user", content: message }]);
     setSending(true);
@@ -176,7 +180,7 @@ function CitizenChatPage() {
           placeholder="e.g. Mera makan malik dukan khali karwana chahta hai…"
           className="min-h-[3rem] flex-1"
         />
-        <Button type="button" onClick={send} disabled={sending || !input.trim()} aria-label="Send message">
+        <Button type="button" onClick={send} disabled={sending || restoring || !input.trim()} aria-label="Send message">
           <Send className="size-4" strokeWidth={1.75} />
         </Button>
       </div>
