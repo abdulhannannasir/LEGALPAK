@@ -82,8 +82,16 @@ export type Document = {
 };
 
 export type DocumentWithCompany = Document & { company_name: string };
-export type DocumentWithLink = Document & { matter_title: string | null; matter_type: string | null };
-export type DocumentWithCompanyAndLink = DocumentWithCompany & { matter_title: string | null; matter_type: string | null };
+export type DocumentWithLink = Document & {
+  matter_title: string | null;
+  matter_type: string | null;
+  obligation_title: string | null;
+};
+export type DocumentWithCompanyAndLink = DocumentWithCompany & {
+  matter_title: string | null;
+  matter_type: string | null;
+  obligation_title: string | null;
+};
 
 export type DocumentVersion = {
   id: string;
@@ -138,8 +146,12 @@ const DOCUMENT_COLUMNS_WITH_LINK = `
   d.blob_pathname, d.mime_type, d.file_size,
   d.category, d.status, d.expiry_date::text as expiry_date, d.review_date::text as review_date, d.version,
   d.created_at::text as created_at, d.updated_at::text as updated_at,
-  m.title as matter_title, m.type as matter_type
+  m.title as matter_title, m.type as matter_type, o.title as obligation_title
 `;
+// The company match is defense in depth: writes now reject cross-company links, but a row saved before that check
+// existed must still not surface another company's matter/obligation title in this company's document list.
+const LINK_JOINS = `left join matter m on m.id = d.matter_id and m.company_id = d.company_id
+  left join compliance_obligation o on o.id = d.obligation_id and o.company_id = d.company_id`;
 
 export const listDocumentsFn = createServerFn({ method: "GET" })
   .validator((input: z.infer<typeof listDocumentsSchema>) => listDocumentsSchema.parse(input))
@@ -150,7 +162,7 @@ export const listDocumentsFn = createServerFn({ method: "GET" })
     if (input.obligationId) {
       return sql.query<DocumentWithLink>(
         `select ${DOCUMENT_COLUMNS_WITH_LINK}
-         from document d left join matter m on m.id = d.matter_id
+         from document d ${LINK_JOINS}
          where d.company_id = $1 and d.obligation_id = $2 order by d.updated_at desc`,
         [input.companyId, input.obligationId],
       );
@@ -158,14 +170,14 @@ export const listDocumentsFn = createServerFn({ method: "GET" })
     if (input.matterId) {
       return sql.query<DocumentWithLink>(
         `select ${DOCUMENT_COLUMNS_WITH_LINK}
-         from document d left join matter m on m.id = d.matter_id
+         from document d ${LINK_JOINS}
          where d.company_id = $1 and d.matter_id = $2 order by d.updated_at desc`,
         [input.companyId, input.matterId],
       );
     }
     return sql.query<DocumentWithLink>(
       `select ${DOCUMENT_COLUMNS_WITH_LINK}
-       from document d left join matter m on m.id = d.matter_id
+       from document d ${LINK_JOINS}
        where d.company_id = $1 order by d.updated_at desc`,
       [input.companyId],
     );
@@ -183,10 +195,10 @@ export const listWorkspaceDocumentsFn = createServerFn({ method: "GET" })
               d.blob_pathname, d.mime_type, d.file_size, d.category, d.status,
               d.expiry_date::text as expiry_date, d.review_date::text as review_date, d.version,
               d.created_at::text as created_at, d.updated_at::text as updated_at,
-              c.name as company_name, m.title as matter_title, m.type as matter_type
+              c.name as company_name, m.title as matter_title, m.type as matter_type, o.title as obligation_title
        from document d
        join company c on c.id = d.company_id
-       left join matter m on m.id = d.matter_id
+       ${LINK_JOINS}
        where d.workspace_id = $1
        order by d.updated_at desc`,
       [workspaceId],
@@ -198,8 +210,22 @@ export const uploadDocumentFn = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .handler(async ({ context, data: input }) => {
     const company = await requireCompanyAccess(context.userId, input.companyId);
-    if (input.matterId) await requireMatterAccess(context.userId, input.matterId);
-    if (input.obligationId) await requireObligationAccess(context.userId, input.obligationId);
+    // Each id above is authorized on its own, which is not enough: a member of two companies could otherwise file a
+    // document under company A while attaching company B's matter or obligation (and then company A's members would
+    // see B's matter title in the document list). The link must stay inside the document's own company — the same rule
+    // linkDocumentFn enforces. Checked before the blob upload so a rejected request leaves nothing behind.
+    if (input.matterId) {
+      const matter = await requireMatterAccess(context.userId, input.matterId);
+      if (matter.company_id !== input.companyId) {
+        throw new Error("Can only attach a document to a matter on the same company");
+      }
+    }
+    if (input.obligationId) {
+      const obligation = await requireObligationAccess(context.userId, input.obligationId);
+      if (obligation.company_id !== input.companyId) {
+        throw new Error("Can only attach a document to a compliance obligation on the same company");
+      }
+    }
 
     const buffer = Buffer.from(input.base64, "base64");
     if (buffer.byteLength > MAX_FILE_BYTES) {
@@ -351,10 +377,12 @@ export const updateDocumentDetailsFn = createServerFn({ method: "POST" })
 
 const linkSchema = z.object({
   documentId: z.string().min(1),
+  /** A document links to at most one of these at a time — picking one clears the other. */
   matterId: z.string().min(1).nullable(),
+  obligationId: z.string().min(1).nullable(),
 });
 
-/** Attaches (or detaches) a document to/from a matter — the same link a compliance obligation or a contract already is. */
+/** Attaches (or detaches) a document to/from a matter (a contract, or an older SECP/FBR filing) or a compliance obligation. */
 export const linkDocumentFn = createServerFn({ method: "POST" })
   .validator((input: z.infer<typeof linkSchema>) => linkSchema.parse(input))
   .middleware([authMiddleware])
@@ -371,22 +399,46 @@ export const linkDocumentFn = createServerFn({ method: "POST" })
       ]);
       matterTitle = rows[0]?.title ?? null;
     }
+    let obligationTitle: string | null = null;
+    if (input.obligationId) {
+      const obligation = await requireObligationAccess(context.userId, input.obligationId);
+      if (obligation.company_id !== doc.company_id) {
+        throw new Error("Can only link to a compliance obligation on the same company");
+      }
+      const rows = await (await getSql()).query<{ title: string }>(
+        `select title from compliance_obligation where id = $1`,
+        [input.obligationId],
+      );
+      obligationTitle = rows[0]?.title ?? null;
+    }
     const sql = await getSql();
     const rows = await sql.query<Document>(
-      `update document set matter_id = $2, updated_at = now() where id = $1 returning ${DOCUMENT_COLUMNS}`,
-      [doc.id, input.matterId],
+      `update document set matter_id = $2, obligation_id = $3, updated_at = now() where id = $1 returning ${DOCUMENT_COLUMNS}`,
+      [doc.id, input.matterId, input.obligationId],
     );
     const updated = rows[0];
+    const linked = Boolean(input.matterId || input.obligationId);
     logAudit({
       workspaceId: updated.workspace_id,
       companyId: updated.company_id,
       matterId: updated.matter_id ?? undefined,
       userId: context.userId,
-      action: input.matterId ? "DOCUMENT_LINKED" : "DOCUMENT_UNLINKED",
+      action: linked ? "DOCUMENT_LINKED" : "DOCUMENT_UNLINKED",
       entityType: "document",
       entityId: updated.id,
-      metadata: { name: updated.name, matterTitle },
+      metadata: { name: updated.name, matterTitle, obligationTitle },
     }).catch(() => {});
+    if (updated.obligation_id) {
+      logAudit({
+        workspaceId: updated.workspace_id,
+        companyId: updated.company_id,
+        userId: context.userId,
+        action: "OBLIGATION_DOCUMENT_LINKED",
+        entityType: "compliance_obligation",
+        entityId: updated.obligation_id,
+        metadata: { name: updated.name },
+      }).catch(() => {});
+    }
     return updated;
   });
 

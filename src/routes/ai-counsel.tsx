@@ -5,7 +5,15 @@ import { Building2, Gavel, Send, Sparkles } from "lucide-react";
 import { RequireSubscription } from "@/components/billing/RequireSubscription";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/field";
-import { sendChatMessageFn } from "@/lib/citizen/chat";
+import { getChatHistoryFn, sendChatMessageFn } from "@/lib/citizen/chat";
+import {
+  clearStoredSession,
+  isInvalidSessionError,
+  loadStoredSession,
+  saveStoredSession,
+  withSessionRecovery,
+  type StoredChatSession,
+} from "@/lib/citizen/chat-session";
 import { useCompanyContext } from "@/lib/legalpak/company-context";
 import { COMPANY_TYPE_LABEL } from "@/lib/legalpak/companies";
 
@@ -36,33 +44,61 @@ const SUGGESTIONS = [
   "What's the deadline for our income tax return this year?",
 ];
 
-function loadSession(): { sessionId: string; sessionToken: string } | null {
-  try {
-    const raw = window.localStorage.getItem("legalpak:ai-counsel-session");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
+const SESSION_KEY = "legalpak:ai-counsel-session";
 
-function saveSession(sessionId: string, sessionToken: string) {
-  try {
-    window.localStorage.setItem("legalpak:ai-counsel-session", JSON.stringify({ sessionId, sessionToken }));
-  } catch {
-    /* localStorage unavailable — chat still works, just won't persist across reloads */
-  }
-}
+/** How long sending waits for the saved transcript before the page stops holding it back. */
+const RESTORE_TIMEOUT_MS = 8000;
 
 function AiCounselPage() {
   const { selectedCompany } = useCompanyContext();
   const [messages, setMessages] = useState<LocalMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const session = useRef<{ sessionId: string; sessionToken: string } | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const session = useRef<StoredChatSession | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    session.current = loadSession();
+    const stored = loadStoredSession(SESSION_KEY);
+    session.current = stored;
+    if (!stored) return;
+    let cancelled = false;
+    let gaveUp = false;
+    // The server keeps the conversation and the model keeps answering from it, so bring
+    // the transcript back — a blank page after a reload would hide what it is replying to.
+    // Sending waits until this settles: a message sent mid-load would either be wiped by the
+    // transcript arriving or force a guess at which of its rows are already on screen.
+    setRestoring(true);
+    // A stalled request must not lock the chat, so after a while stop waiting.
+    const giveUp = setTimeout(() => {
+      gaveUp = true;
+      if (!cancelled) setRestoring(false);
+    }, RESTORE_TIMEOUT_MS);
+    getChatHistoryFn({ data: stored })
+      .then((rows) => {
+        if (cancelled) return;
+        // Normally nothing can have been sent yet, so this just fills the page. If we gave up
+        // and the user has started a new exchange since, leave that on screen: a late
+        // transcript can't be merged reliably, as nothing says which rows are already shown.
+        setMessages((prev) =>
+          gaveUp && prev.length > 0 ? prev : rows.map((r) => ({ role: r.sender, content: r.content })),
+        );
+      })
+      .catch((err) => {
+        // A session the server no longer knows is dead weight; forget it so the next send starts fresh.
+        if (isInvalidSessionError(err) && session.current === stored) {
+          clearStoredSession(SESSION_KEY);
+          session.current = null;
+        }
+      })
+      .finally(() => {
+        clearTimeout(giveUp);
+        if (!cancelled) setRestoring(false);
+      });
+    return () => {
+      cancelled = true;
+      clearTimeout(giveUp);
+    };
   }, []);
 
   useEffect(() => {
@@ -84,22 +120,24 @@ function AiCounselPage() {
 
   async function send(text?: string) {
     const message = (text ?? input).trim();
-    if (!message || sending) return;
+    if (!message || sending || restoring) return;
     setInput("");
     setMessages((m) => [...m, { role: "user", content: message }]);
     setSending(true);
     try {
-      const result = await sendChatMessageFn({
-        data: {
-          sessionId: session.current?.sessionId,
-          sessionToken: session.current?.sessionToken,
-          message,
-          topic: "corporate",
-          companyContext,
-        },
-      });
+      const result = await withSessionRecovery(SESSION_KEY, session, (s) =>
+        sendChatMessageFn({
+          data: {
+            sessionId: s?.sessionId,
+            sessionToken: s?.sessionToken,
+            message,
+            topic: "corporate",
+            companyContext,
+          },
+        }),
+      );
       session.current = { sessionId: result.sessionId, sessionToken: result.sessionToken };
-      saveSession(result.sessionId, result.sessionToken);
+      saveStoredSession(SESSION_KEY, session.current);
       setMessages((m) => [...m, { role: "assistant", content: result.reply }]);
     } catch {
       toast.error("Could not reach AI Counsel — try again in a moment");
@@ -138,7 +176,7 @@ function AiCounselPage() {
         </p>
       </div>
 
-      {messages.length === 0 && (
+      {messages.length === 0 && !restoring && (
         <div className="flex flex-wrap gap-2">
           {SUGGESTIONS.map((s) => (
             <button
@@ -154,7 +192,10 @@ function AiCounselPage() {
       )}
 
       <div className="min-h-[320px] space-y-3 rounded-[var(--radius-lg)] border border-border bg-surface p-4">
-        {messages.length === 0 && (
+        {messages.length === 0 && restoring && (
+          <p className="text-sm text-muted">Loading your conversation…</p>
+        )}
+        {messages.length === 0 && !restoring && (
           <p className="flex items-start gap-2 text-sm text-muted">
             <Sparkles className="mt-0.5 size-4 shrink-0 text-accent" strokeWidth={1.75} />
             Ask a question about SECP filings, compliance deadlines, contracts, or tax — or pick a
@@ -188,7 +229,7 @@ function AiCounselPage() {
           placeholder="e.g. What do we need to file after allotting new shares?"
           className="min-h-[3rem] flex-1"
         />
-        <Button type="button" onClick={() => send()} disabled={sending || !input.trim()} aria-label="Send message">
+        <Button type="button" onClick={() => send()} disabled={sending || restoring || !input.trim()} aria-label="Send message">
           <Send className="size-4" strokeWidth={1.75} />
         </Button>
       </div>

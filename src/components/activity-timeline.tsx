@@ -37,6 +37,7 @@ const ACTION_LABEL: Record<string, (m: Record<string, unknown>) => string> = {
   OBLIGATION_COMPLETED: () => "Marked complete",
   OBLIGATION_NOTE_ADDED: () => "Note added",
   OBLIGATION_DOCUMENT_UPLOADED: (m) => `Uploaded ${m.name ?? "a document"}`,
+  OBLIGATION_DOCUMENT_LINKED: (m) => `Linked ${m.name ?? "a document"}`,
   TASK_CREATED: (m) => `Task created${m.title ? ` (${m.title})` : ""}`,
   TASK_UPDATED: () => "Task details updated",
   TASK_STATUS_CHANGED: (m) => `Status changed: ${m.from ?? "?"} → ${m.to ?? "?"}`,

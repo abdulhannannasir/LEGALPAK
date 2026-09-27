@@ -2,7 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { randomBytes, createHash } from "node:crypto";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
+import { optionalAuthMiddleware } from "@/lib/auth/optional-middleware";
+import { requireActiveSubscription } from "@/lib/legalpak/billing";
 import { createId } from "@/lib/legalpak/id";
+import { INVALID_SESSION_MESSAGE } from "./chat-session";
 import { askGemini } from "./gemini";
 import { loadHistory, loadTranscript, saveExchange } from "./history";
 import { CITIZEN_ADVISOR_SYSTEM_PROMPT, CORPORATE_COUNSEL_SYSTEM_PROMPT } from "./system-prompt";
@@ -29,6 +32,11 @@ export type { ChatMessage } from "./history";
  * a fresh session gets a random token (returned once, stored by the client
  * like the client-approval flow's hashed tokens); an existing session must
  * present the matching token to append to it.
+ *
+ * Nothing is stored until the model has answered. If the call fails this throws
+ * and leaves no trace — no unanswered user message, no apology saved as if the
+ * advisor had said it — so the next turn's history stays clean and the page can
+ * hand the user's text back for a retry.
  */
 export const sendChatMessageFn = createServerFn({ method: "POST" })
   .validator(
@@ -44,14 +52,24 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
         .object({
           sessionId: z.string().min(1).optional(),
           sessionToken: z.string().min(1).optional(),
-          message: z.string().min(1).max(4000),
+          message: z.string().trim().min(1).max(4000),
           topic: z.enum(CHAT_TOPICS).optional(),
           companyContext: z.string().max(500).optional(),
         })
         .parse(input),
   )
-  .handler(async ({ data: input }) => {
+  .middleware([optionalAuthMiddleware])
+  .handler(async ({ context, data: input }) => {
+    // The citizen chat stays free and anonymous, but `topic` is chosen by the caller and "corporate" selects the paid
+    // AI Counsel advisor — so the AI Counsel page's own gate isn't enough. Enforce sign-in and an active subscription
+    // here, on every message: the topic is re-sent each time, so checking only the first would be trivially bypassed.
+    if (input.topic === "corporate") {
+      if (!context.userId) throw new Error("Unauthorized");
+      await requireActiveSubscription(context.userId);
+    }
+
     const sql = await getSql();
+    const isNewSession = !input.sessionId;
     let sessionId = input.sessionId;
     let sessionToken = input.sessionToken;
 
@@ -62,18 +80,14 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
       );
       const session = rows[0];
       if (!session || !sessionToken || session.session_token_hash !== hashToken(sessionToken)) {
-        throw new Error("Invalid or expired chat session");
+        throw new Error(INVALID_SESSION_MESSAGE);
       }
     } else {
       sessionId = createId("chat");
       sessionToken = randomBytes(24).toString("hex");
-      await sql.query(
-        `insert into chat_session (id, session_token_hash, topic) values ($1, $2, $3)`,
-        [sessionId, hashToken(sessionToken), input.topic ?? null],
-      );
     }
 
-    const history = await loadHistory(sql, sessionId);
+    const history = isNewSession ? [] : await loadHistory(sql, sessionId);
     // The context line goes only to Gemini, never to the stored/returned message —
     // the chat bubble and history must show exactly what the user typed.
     const messageForModel =
@@ -90,16 +104,19 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
       reply = await askGemini(systemPrompt, history);
     } catch (err) {
       console.error("askGemini failed:", err);
-      reply =
-        input.topic === "corporate"
-          ? "Sorry, I couldn't reach AI Counsel just now. Please try again in a moment, or request a consultation with a corporate lawyer directly."
-          : "Sorry, I couldn't reach the legal advisor service just now. Please try again in a moment, or use the lawyer directory to speak with a verified advocate directly.";
+      // Deliberately generic — the underlying cause (missing key, upstream error) stays in the server log.
+      throw new Error("The legal advisor is unavailable right now");
     }
-
     const answeredAt = new Date();
 
-    // Question and reply go in as one unit, both stamped with when the model answered, so an
-    // overlapping send can't land between them and nothing is stored while the model is working.
+    if (isNewSession) {
+      await sql.query(
+        `insert into chat_session (id, session_token_hash, topic) values ($1, $2, $3)`,
+        [sessionId, hashToken(sessionToken), input.topic ?? null],
+      );
+    }
+    // Question and reply go in as one unit, both stamped with when the model answered, so a failure
+    // can't leave the message stored without its reply and an overlapping send can't land between them.
     await saveExchange(sql, {
       sessionId,
       id: createId("msg"),

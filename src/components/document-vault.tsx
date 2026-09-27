@@ -47,6 +47,7 @@ import {
 import { listMattersFn, type Matter } from "@/lib/legalpak/matters";
 import { MATTER_TYPE_LABEL } from "@/lib/legalpak/workflow";
 import { isComplianceMatterType } from "@/lib/legalpak/compliance";
+import { listComplianceObligationsFn, type ComplianceObligationWithCompany } from "@/lib/legalpak/compliance-obligations";
 
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 
@@ -127,9 +128,11 @@ export function DocumentVault({ scope, title = "Documents" }: { scope: DocumentV
     status: DocumentStatus;
     expiryDate: string;
     reviewDate: string;
-    matterId: string;
+    /** Encodes the single link a document can have: "", "matter:<id>", or "obligation:<id>". */
+    linkedTo: string;
   } | null>(null);
   const [matterOptions, setMatterOptions] = useState<Record<string, Matter[]>>({});
+  const [obligationOptions, setObligationOptions] = useState<Record<string, ComplianceObligationWithCompany[]>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const replaceTargetId = useRef<string | null>(null);
@@ -315,12 +318,27 @@ export function DocumentVault({ scope, title = "Documents" }: { scope: DocumentV
       status: doc.status,
       expiryDate: doc.expiry_date ?? "",
       reviewDate: doc.review_date ?? "",
-      matterId: doc.matter_id ?? "",
+      linkedTo: doc.obligation_id
+        ? `obligation:${doc.obligation_id}`
+        : doc.matter_id
+          ? `matter:${doc.matter_id}`
+          : "",
     });
     if (!matterOptions[doc.company_id]) {
       try {
         const rows = await listMattersFn({ data: doc.company_id });
         setMatterOptions((m) => ({ ...m, [doc.company_id]: rows }));
+      } catch {
+        // Linking is optional — leave the picker empty rather than blocking the details panel.
+      }
+    }
+    if (!obligationOptions[doc.company_id]) {
+      try {
+        const rows = await listComplianceObligationsFn({ data: doc.workspace_id });
+        setObligationOptions((o) => ({
+          ...o,
+          [doc.company_id]: rows.filter((r) => r.company_id === doc.company_id),
+        }));
       } catch {
         // Linking is optional — leave the picker empty rather than blocking the details panel.
       }
@@ -341,8 +359,11 @@ export function DocumentVault({ scope, title = "Documents" }: { scope: DocumentV
           reviewDate: detailsDraft.reviewDate || null,
         },
       });
-      if ((detailsDraft.matterId || null) !== doc.matter_id) {
-        await linkDocumentFn({ data: { documentId: doc.id, matterId: detailsDraft.matterId || null } });
+      const [linkKind, linkId] = detailsDraft.linkedTo.split(":") as [string, string | undefined];
+      const nextMatterId = linkKind === "matter" ? (linkId ?? null) : null;
+      const nextObligationId = linkKind === "obligation" ? (linkId ?? null) : null;
+      if (nextMatterId !== doc.matter_id || nextObligationId !== doc.obligation_id) {
+        await linkDocumentFn({ data: { documentId: doc.id, matterId: nextMatterId, obligationId: nextObligationId } });
       }
       toast.success("Saved");
       setDetailsOpenId(null);
@@ -364,7 +385,8 @@ export function DocumentVault({ scope, title = "Documents" }: { scope: DocumentV
       d.name.toLowerCase().includes(q) ||
       DOCUMENT_CATEGORY_LABEL[d.category].toLowerCase().includes(q) ||
       (isCompany && (d as DocumentWithCompanyAndLink).company_name.toLowerCase().includes(q)) ||
-      (d.matter_title?.toLowerCase().includes(q) ?? false)
+      (d.matter_title?.toLowerCase().includes(q) ?? false) ||
+      (d.obligation_title?.toLowerCase().includes(q) ?? false)
     );
   });
   const presentCategories = new Set((documents ?? []).map((d) => d.category));
@@ -487,9 +509,10 @@ export function DocumentVault({ scope, title = "Documents" }: { scope: DocumentV
             const isCompany = "company_name" in doc;
             const isDetailsOpen = detailsOpenId === doc.id;
             const matters = matterOptions[doc.company_id] ?? [];
+            const obligations = obligationOptions[doc.company_id] ?? [];
             return (
               <div key={doc.id} className="rounded-[var(--radius-md)] border border-border bg-bg px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <FileText className="size-5 shrink-0 text-accent" strokeWidth={1.75} />
                     <div className="min-w-0 flex-1">
@@ -540,11 +563,18 @@ export function DocumentVault({ scope, title = "Documents" }: { scope: DocumentV
                                 {(doc as DocumentWithCompanyAndLink).company_name}
                               </span>
                             )}
-                            {doc.matter_title && (
+                            {doc.obligation_title ? (
                               <span className="inline-flex items-center gap-1 text-accent">
                                 <Link2 className="size-3" strokeWidth={1.75} />
-                                {doc.matter_title}
+                                {doc.obligation_title}
                               </span>
+                            ) : (
+                              doc.matter_title && (
+                                <span className="inline-flex items-center gap-1 text-accent">
+                                  <Link2 className="size-3" strokeWidth={1.75} />
+                                  {doc.matter_title}
+                                </span>
+                              )
                             )}
                           </dl>
                           <div className="mt-1.5">
@@ -699,19 +729,17 @@ export function DocumentVault({ scope, title = "Documents" }: { scope: DocumentV
                     </Field>
                     <Field label="Linked to">
                       <Select
-                        value={detailsDraft.matterId}
-                        onChange={(e) => setDetailsDraft((d) => (d ? { ...d, matterId: e.target.value } : d))}
+                        value={detailsDraft.linkedTo}
+                        onChange={(e) => setDetailsDraft((d) => (d ? { ...d, linkedTo: e.target.value } : d))}
                       >
                         <option value="">Not linked</option>
-                        {matters.filter((m) => isComplianceMatterType(m.type)).length > 0 && (
+                        {obligations.length > 0 && (
                           <optgroup label="Compliance obligations">
-                            {matters
-                              .filter((m) => isComplianceMatterType(m.type))
-                              .map((m) => (
-                                <option key={m.id} value={m.id}>
-                                  {m.title} ({MATTER_TYPE_LABEL[m.type]})
-                                </option>
-                              ))}
+                            {obligations.map((o) => (
+                              <option key={o.id} value={`obligation:${o.id}`}>
+                                {o.title}
+                              </option>
+                            ))}
                           </optgroup>
                         )}
                         {matters.filter((m) => m.type === "CONTRACT").length > 0 && (
@@ -719,8 +747,19 @@ export function DocumentVault({ scope, title = "Documents" }: { scope: DocumentV
                             {matters
                               .filter((m) => m.type === "CONTRACT")
                               .map((m) => (
-                                <option key={m.id} value={m.id}>
+                                <option key={m.id} value={`matter:${m.id}`}>
                                   {m.title}
+                                </option>
+                              ))}
+                          </optgroup>
+                        )}
+                        {matters.filter((m) => isComplianceMatterType(m.type)).length > 0 && (
+                          <optgroup label="SECP/FBR filings">
+                            {matters
+                              .filter((m) => isComplianceMatterType(m.type))
+                              .map((m) => (
+                                <option key={m.id} value={`matter:${m.id}`}>
+                                  {m.title} ({MATTER_TYPE_LABEL[m.type]})
                                 </option>
                               ))}
                           </optgroup>

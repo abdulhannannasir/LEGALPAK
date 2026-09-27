@@ -165,6 +165,16 @@ export function computeRuleDueDate(
   return { dueDate: null, periodKey: null };
 }
 
+/**
+ * Every rule, to any signed-in user — deliberately NOT scoped by `context.userId`.
+ * `compliance_rule` is global statutory configuration (no workspace or user
+ * column; the same rules are evaluated against every company), so there is
+ * no per-user data here to scope to, and scoping by user would show everyone
+ * an empty list. The rules page lets any signed-in user *view* the configured
+ * rules while only an admin can create, edit or delete them (requireAdmin on
+ * every mutation below). Nothing tenant-specific is selected — `created_by`
+ * is not in RULE_COLUMNS.
+ */
 export const listComplianceRulesFn = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async () => {
