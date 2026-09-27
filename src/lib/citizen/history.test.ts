@@ -291,12 +291,31 @@ describe("migration 0020: flagging old rows whose pairing can't be proven", () =
       ["o4", "user", "q2", 3],
       ["o5", "assistant", "a2", 4],
     ]);
-    // Question and reply written by one statement, so each pair shares an instant.
-    await legacy("atomic", [
-      ["p1", "user", "q1", 0],
-      ["p2", "assistant", "a1", 0],
-      ["p3", "user", "q2", 1],
-      ["p4", "assistant", "a2", 1],
+    // Exchanges as saveExchange stores them: question and reply share an instant and carry the
+    // ids `<exchange>.q` / `<exchange>.r`. The last two land on the very same instant.
+    await legacy("whole", [
+      ["e1.q", "user", "q1", 0],
+      ["e1.r", "assistant", "a1", 0],
+      ["e2.q", "user", "q2", 1],
+      ["e2.r", "assistant", "a2", 1],
+      ["e3.q", "user", "q3", 2],
+      ["e3.r", "assistant", "a3", 2],
+      ["e4.q", "user", "q4", 2],
+      ["e4.r", "assistant", "a4", 2],
+    ]);
+    // Legacy sends A and B overlap; B's question and A's reply happen to be stamped with the
+    // same instant. One question plus one reply at an instant looks like a pair, but it isn't.
+    await legacy("coincident", [
+      ["m1", "user", "uA", 0],
+      ["m2", "user", "uB", 1],
+      ["m3", "assistant", "rA", 1],
+      ["m4", "assistant", "rB", 2],
+    ]);
+    // Ids that look like saveExchange's but belong to different exchanges: only an exact
+    // `<x>.q` / `<x>.r` match is a pair. They share an instant so that nothing else can prove them.
+    await legacy("mismatched", [
+      ["f1.q", "user", "lonely question", 0],
+      ["g1.r", "assistant", "someone else's reply", 0],
     ]);
     // Two exchanges stored at the very same instant, ids chosen so they sort question A,
     // reply B, question B, reply A — an order that would read as two clean pairs, wrongly.
@@ -331,9 +350,22 @@ describe("migration 0020: flagging old rows whose pairing can't be proven", () =
     assert.deepEqual(texts(await loadHistory(db, "orphan")), ["q1", "a1"]);
   });
 
-  it("keeps a question and reply that were stored together", async () => {
-    assert.deepEqual(await flagged("atomic"), []);
-    assert.deepEqual(texts(await loadHistory(db, "atomic")), ["q1", "a1", "q2", "a2"]);
+  it("keeps exchanges stored whole, identified by their ids, even two at one instant", async () => {
+    assert.deepEqual(await flagged("whole"), []);
+    assert.deepEqual(
+      texts(await loadHistory(db, "whole")),
+      ["q1", "a1", "q2", "a2", "q3", "a3", "q4", "a4"],
+    );
+  });
+
+  it("does not take a question and another question's reply sharing an instant for a pair", async () => {
+    // Without the ids to go on, an instant shared by one question and one reply proves nothing.
+    assert.deepEqual(await flagged("coincident"), ["m1", "m2", "m3", "m4"]);
+    assert.deepEqual(await loadHistory(db, "coincident"), []);
+  });
+
+  it("only pairs ids that match exactly", async () => {
+    assert.deepEqual(await flagged("mismatched"), ["f1.q", "g1.r"]);
   });
 
   it("flags two exchanges stored at one instant, whose rows can't be put in order", async () => {
