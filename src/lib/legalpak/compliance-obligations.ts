@@ -418,29 +418,39 @@ async function spawnNextOccurrence(completed: ComplianceObligation, userId: stri
   }
 
   const id = createId("cobl");
-  await sql.query(
-    `insert into compliance_obligation (
-      id, workspace_id, company_id, rule_id, title, description, category, authority,
-      due_date, priority, recurring, recurrence_rule, period_key, required_documents, created_by
-    ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,$15)`,
-    [
-      id,
-      completed.workspace_id,
-      completed.company_id,
-      completed.rule_id,
-      completed.title,
-      completed.description,
-      completed.category,
-      completed.authority,
-      nextDue,
-      completed.priority,
-      true,
-      recurrenceRule,
-      periodKey,
-      JSON.stringify(completed.required_documents),
-      userId,
-    ],
-  );
+  try {
+    await sql.query(
+      `insert into compliance_obligation (
+        id, workspace_id, company_id, rule_id, title, description, category, authority,
+        due_date, priority, recurring, recurrence_rule, period_key, required_documents, created_by
+      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,$15)`,
+      [
+        id,
+        completed.workspace_id,
+        completed.company_id,
+        completed.rule_id,
+        completed.title,
+        completed.description,
+        completed.category,
+        completed.authority,
+        nextDue,
+        completed.priority,
+        true,
+        recurrenceRule,
+        periodKey,
+        JSON.stringify(completed.required_documents),
+        userId,
+      ],
+    );
+  } catch (e) {
+    // compliance_obligation_rule_period_idx already rejected this exact (company, rule, period):
+    // something else (evaluateForCompany's own re-scan, or another completion) already created the
+    // next occurrence, so the goal here — it exists — is already met. This must not fail the status
+    // change that triggered this spawn: that update already committed in its own statement, and
+    // completing an obligation should never report failure over its own successful completion.
+    if (e instanceof Error && "code" in e && e.code === "23505") return;
+    throw e;
+  }
   logAudit({
     workspaceId: completed.workspace_id,
     companyId: completed.company_id,
