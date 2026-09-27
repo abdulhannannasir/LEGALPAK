@@ -27,17 +27,31 @@ export function addDaysISO(iso: string, days: number): string | null {
   return toISO(d);
 }
 
+function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+}
+
+/**
+ * A month-end date (the 28th–31st, whichever ends its own month) stays anchored to the *end* of
+ * whatever month it lands on, not to that day number — otherwise a single short month clamp
+ * permanently drifts every later occurrence earlier. Jan 31 -> Feb 28 -> Mar 31 -> Apr 30 -> May
+ * 31 keeps repeating on each month's last day forever; without this, the chain would instead
+ * settle on the 28th (Jan 31 -> Feb 28 -> Mar 28 -> Apr 28 -> ...) once the first short month
+ * clamped it. Any other day of the month (the common case) is unaffected: it clamps only when the
+ * target month is too short, exactly as before.
+ */
 export function addMonthsISO(iso: string, months: number): string | null {
   const d = parseISO(iso);
   if (!d) return null;
   const day = d.getUTCDate();
+  const wasMonthEnd = day === daysInMonth(d.getUTCFullYear(), d.getUTCMonth());
   // Move to the 1st before shifting months so setUTCMonth can't overflow into a later month by
   // landing on a day the target month doesn't have (e.g. Jan 31 -> "Feb 31", which JS normalizes
-  // to Mar 2/3) — then clamp back to the target month's last day if it's shorter than the original.
+  // to Mar 2/3).
   d.setUTCDate(1);
   d.setUTCMonth(d.getUTCMonth() + months);
-  const daysInTargetMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
-  d.setUTCDate(Math.min(day, daysInTargetMonth));
+  const targetMonthLength = daysInMonth(d.getUTCFullYear(), d.getUTCMonth());
+  d.setUTCDate(wasMonthEnd ? targetMonthLength : Math.min(day, targetMonthLength));
   return toISO(d);
 }
 
