@@ -41,6 +41,9 @@ const TOPICS: { id: ChatTopic; label: string }[] = [
 
 const SESSION_KEY = "legalpak:citizen-chat-session";
 
+/** How long sending waits for the saved transcript before the page stops holding it back. */
+const RESTORE_TIMEOUT_MS = 8000;
+
 function CitizenChatPage() {
   const [messages, setMessages] = useState<LocalMessage[]>([]);
   const [input, setInput] = useState("");
@@ -55,15 +58,26 @@ function CitizenChatPage() {
     session.current = stored;
     if (!stored) return;
     let cancelled = false;
+    let gaveUp = false;
     // The server keeps the conversation and the model keeps answering from it, so bring
     // the transcript back — a blank page after a reload would hide what it is replying to.
     // Sending waits until this settles: a message sent mid-load would either be wiped by the
     // transcript arriving or force a guess at which of its rows are already on screen.
     setRestoring(true);
+    // A stalled request must not lock the chat, so after a while stop waiting.
+    const giveUp = setTimeout(() => {
+      gaveUp = true;
+      if (!cancelled) setRestoring(false);
+    }, RESTORE_TIMEOUT_MS);
     getChatHistoryFn({ data: stored })
       .then((rows) => {
         if (cancelled) return;
-        setMessages(rows.map((r) => ({ role: r.sender, content: r.content })));
+        // Normally nothing can have been sent yet, so this just fills the page. If we gave up
+        // and the user has started a new exchange since, leave that on screen: a late
+        // transcript can't be merged reliably, as nothing says which rows are already shown.
+        setMessages((prev) =>
+          gaveUp && prev.length > 0 ? prev : rows.map((r) => ({ role: r.sender, content: r.content })),
+        );
       })
       .catch((err) => {
         // A session the server no longer knows is dead weight; forget it so the next send starts fresh.
@@ -73,10 +87,12 @@ function CitizenChatPage() {
         }
       })
       .finally(() => {
+        clearTimeout(giveUp);
         if (!cancelled) setRestoring(false);
       });
     return () => {
       cancelled = true;
+      clearTimeout(giveUp);
     };
   }, []);
 
@@ -147,7 +163,10 @@ function CitizenChatPage() {
       </div>
 
       <div className="min-h-[320px] space-y-3 rounded-[var(--radius-lg)] border border-border bg-surface p-4">
-        {messages.length === 0 && (
+        {messages.length === 0 && restoring && (
+          <p className="text-sm text-muted">Loading your conversation…</p>
+        )}
+        {messages.length === 0 && !restoring && (
           <p className="text-sm text-muted">
             No messages yet — describe what happened and LegalPak AI will explain your rights under
             Pakistani law and the next steps to take.
