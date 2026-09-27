@@ -3,7 +3,8 @@ import { randomBytes, createHash } from "node:crypto";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { createId } from "@/lib/legalpak/id";
-import { askGemini, type ChatTurn } from "./gemini";
+import { askGemini } from "./gemini";
+import { loadHistory, loadTranscript, saveExchange } from "./history";
 import { CITIZEN_ADVISOR_SYSTEM_PROMPT, CORPORATE_COUNSEL_SYSTEM_PROMPT } from "./system-prompt";
 
 function hashToken(token: string): string {
@@ -21,23 +22,7 @@ const CHAT_TOPICS = [
 ] as const;
 export type ChatTopic = (typeof CHAT_TOPICS)[number];
 
-export type ChatMessage = {
-  id: string;
-  sender: "user" | "assistant";
-  content: string;
-  created_at: string;
-};
-
-const HISTORY_LIMIT = 20;
-
-async function loadHistory(sessionId: string): Promise<ChatTurn[]> {
-  const sql = await getSql();
-  const rows = await sql.query<{ sender: "user" | "assistant"; content: string }>(
-    `select sender, content from chat_message where session_id = $1 order by created_at asc limit $2`,
-    [sessionId, HISTORY_LIMIT],
-  );
-  return rows.map((r) => ({ role: r.sender === "user" ? "user" : "model", text: r.content }));
-}
+export type { ChatMessage } from "./history";
 
 /**
  * Sends one citizen message and returns the AI's reply. Works anonymously —
@@ -88,7 +73,7 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
       );
     }
 
-    const history = await loadHistory(sessionId);
+    const history = await loadHistory(sql, sessionId);
     // The context line goes only to Gemini, never to the stored/returned message —
     // the chat bubble and history must show exactly what the user typed.
     const messageForModel =
@@ -96,11 +81,6 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
         ? `[Company context: ${input.companyContext}]\n\n${input.message}`
         : input.message;
     history.push({ role: "user", text: messageForModel });
-
-    await sql.query(
-      `insert into chat_message (id, session_id, sender, content) values ($1, $2, 'user', $3)`,
-      [createId("msg"), sessionId, input.message],
-    );
 
     const systemPrompt =
       input.topic === "corporate" ? CORPORATE_COUNSEL_SYSTEM_PROMPT : CITIZEN_ADVISOR_SYSTEM_PROMPT;
@@ -116,10 +96,17 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
           : "Sorry, I couldn't reach the legal advisor service just now. Please try again in a moment, or use the lawyer directory to speak with a verified advocate directly.";
     }
 
-    await sql.query(
-      `insert into chat_message (id, session_id, sender, content) values ($1, $2, 'assistant', $3)`,
-      [createId("msg"), sessionId, reply],
-    );
+    const answeredAt = new Date();
+
+    // Question and reply go in as one unit, both stamped with when the model answered, so an
+    // overlapping send can't land between them and nothing is stored while the model is working.
+    await saveExchange(sql, {
+      sessionId,
+      id: createId("msg"),
+      question: input.message,
+      reply,
+      at: answeredAt,
+    });
 
     return { sessionId, sessionToken, reply };
   });
@@ -138,9 +125,5 @@ export const getChatHistoryFn = createServerFn({ method: "POST" })
     if (!session || session.session_token_hash !== hashToken(input.sessionToken)) {
       throw new Error("Invalid or expired chat session");
     }
-    return sql.query<ChatMessage>(
-      `select id, sender, content, created_at::text as created_at
-       from chat_message where session_id = $1 order by created_at asc`,
-      [input.sessionId],
-    );
+    return loadTranscript(sql, input.sessionId);
   });
