@@ -15,6 +15,8 @@ import {
 const u = (text: string): ChatTurn => ({ role: "user", text });
 const m = (text: string): ChatTurn => ({ role: "model", text });
 const texts = (turns: ChatTurn[]) => turns.map((t) => t.text);
+const migration = (name: string) =>
+  readFileSync(new URL(`../../../migrations/${name}`, import.meta.url), "utf8");
 
 describe("keepPairedExchanges", () => {
   it("leaves a clean alternating conversation untouched", () => {
@@ -55,10 +57,9 @@ describe("stored history", () => {
 
   before(async () => {
     pg = new PGlite();
-    // The real migration, so the query is checked against the real chat tables.
-    await pg.exec(
-      readFileSync(new URL("../../../migrations/0010_citizen_advisor.sql", import.meta.url), "utf8"),
-    );
+    // The real migrations, so the queries are checked against the real chat tables.
+    await pg.exec(migration("0010_citizen_advisor.sql"));
+    await pg.exec(migration("0020_chat_pairing_unverified.sql"));
     db = { query: async <T>(text: string, params?: unknown[]) => (await pg.query<T>(text, params)).rows };
   });
   after(() => pg.close());
@@ -227,5 +228,128 @@ describe("stored history", () => {
       await pg.query(`insert into chat_session (id) values ('dotted')`);
       await assert.rejects(exchange("dotted", "x", at(1), "a.b"), /must not contain/);
     });
+  });
+});
+
+describe("migration 0020: flagging old rows whose pairing can't be proven", () => {
+  let pg: PGlite;
+  let db: HistoryDb;
+
+  type Legacy = [id: string, sender: "user" | "assistant", content: string, second: number];
+
+  /** Rows as the old write path left them, on a schema that predates the migration. */
+  async function legacy(sessionId: string, rows: Legacy[]) {
+    await pg.query(`insert into chat_session (id) values ($1)`, [sessionId]);
+    for (const [id, sender, content, second] of rows) {
+      await pg.query(
+        `insert into chat_message (id, session_id, sender, content, created_at)
+         values ($1, $2, $3, $4, timestamptz '2026-01-01 00:00:00+00' + ($5 || ' seconds')::interval)`,
+        [id, sessionId, sender, content, String(second)],
+      );
+    }
+  }
+
+  const flagged = async (sessionId: string) =>
+    (
+      await db.query<{ id: string }>(
+        `select id from chat_message where session_id = $1 and pairing_unverified order by created_at, id`,
+        [sessionId],
+      )
+    ).map((r) => r.id);
+
+  before(async () => {
+    pg = new PGlite();
+    db = { query: async <T>(text: string, params?: unknown[]) => (await pg.query<T>(text, params)).rows };
+    await pg.exec(migration("0010_citizen_advisor.sql"));
+
+    // Every reply directly follows its question.
+    await legacy("clean", [
+      ["c1", "user", "q1", 0],
+      ["c2", "assistant", "a1", 1],
+      ["c3", "user", "q2", 2],
+      ["c4", "assistant", "a2", 3],
+    ]);
+    // Four overlapping sends whose replies land out of step (user A, user B, reply A, user C,
+    // reply B, ...), then a quiet exchange. `user C, reply B` looks like a pair but isn't.
+    await legacy("crossed", [
+      ["x1", "user", "uA", 0],
+      ["x2", "user", "uB", 1],
+      ["x3", "assistant", "rA", 2],
+      ["x4", "user", "uC", 3],
+      ["x5", "assistant", "rB", 4],
+      ["x6", "user", "uD", 5],
+      ["x7", "assistant", "rC", 6],
+      ["x8", "assistant", "rD", 7],
+      ["x9", "user", "q9", 8],
+      ["xa", "assistant", "a9", 9],
+    ]);
+    // A question that never got its reply (say the server died mid-call), then two more rows.
+    await legacy("orphan", [
+      ["o1", "user", "q1", 0],
+      ["o2", "assistant", "a1", 1],
+      ["o3", "user", "lost", 2],
+      ["o4", "user", "q2", 3],
+      ["o5", "assistant", "a2", 4],
+    ]);
+    // Question and reply written by one statement, so each pair shares an instant.
+    await legacy("atomic", [
+      ["p1", "user", "q1", 0],
+      ["p2", "assistant", "a1", 0],
+      ["p3", "user", "q2", 1],
+      ["p4", "assistant", "a2", 1],
+    ]);
+    // Two exchanges stored at the very same instant, ids chosen so they sort question A,
+    // reply B, question B, reply A — an order that would read as two clean pairs, wrongly.
+    await legacy("tied", [
+      ["t1", "user", "q-A", 0],
+      ["t2", "assistant", "a-B", 0],
+      ["t3", "user", "q-B", 0],
+      ["t4", "assistant", "a-A", 0],
+    ]);
+
+    await pg.exec(migration("0020_chat_pairing_unverified.sql"));
+  });
+  after(() => pg.close());
+
+  it("flags nothing when every reply directly follows its question", async () => {
+    assert.deepEqual(await flagged("clean"), []);
+    assert.deepEqual(texts(await loadHistory(db, "clean")), ["q1", "a1", "q2", "a2"]);
+  });
+
+  it("flags the rows of overlapping sends whose replies could belong to either question", async () => {
+    // The exchange after the overlap is provable again: nothing else was awaiting an answer.
+    assert.deepEqual(await flagged("crossed"), ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8"]);
+  });
+
+  it("keeps flagged rows out of the model's context but still shows them in the transcript", async () => {
+    assert.deepEqual(texts(await loadHistory(db, "crossed")), ["q9", "a9"]);
+    assert.equal((await loadTranscript(db, "crossed")).length, 10);
+  });
+
+  it("flags what follows a question that never got a reply, since it can't be told apart", async () => {
+    assert.deepEqual(await flagged("orphan"), ["o3", "o4", "o5"]);
+    assert.deepEqual(texts(await loadHistory(db, "orphan")), ["q1", "a1"]);
+  });
+
+  it("keeps a question and reply that were stored together", async () => {
+    assert.deepEqual(await flagged("atomic"), []);
+    assert.deepEqual(texts(await loadHistory(db, "atomic")), ["q1", "a1", "q2", "a2"]);
+  });
+
+  it("flags two exchanges stored at one instant, whose rows can't be put in order", async () => {
+    assert.deepEqual(await flagged("tied"), ["t1", "t2", "t3", "t4"]);
+    assert.deepEqual(await loadHistory(db, "tied"), []);
+  });
+
+  it("leaves rows written after the migration unflagged", async () => {
+    await saveExchange(db, {
+      sessionId: "clean",
+      id: "fresh",
+      question: "q3",
+      reply: "a3",
+      at: new Date(Date.UTC(2026, 0, 2)),
+    });
+    assert.deepEqual(await flagged("clean"), []);
+    assert.deepEqual(texts(await loadHistory(db, "clean")), ["q1", "a1", "q2", "a2", "q3", "a3"]);
   });
 });

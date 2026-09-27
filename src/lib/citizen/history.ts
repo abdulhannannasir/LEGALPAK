@@ -70,11 +70,11 @@ export async function saveExchange(db: HistoryDb, exchange: Exchange): Promise<v
  * exchange there is an adjacent pair. The result alternates, opens on a user turn and ends
  * on a model turn, so the new question can be appended directly.
  *
- * It is also a safety net for older rows, which stored the question first and the answer
- * later — two overlapping sends could interleave there. This removes the obvious cases
- * (user, user, model, model), but it cannot untangle crossed pairs such as user A, user B,
- * reply A, user C, reply B: nothing in those rows says which reply answers which question,
- * so row order alone can't be trusted for them.
+ * It looks at roles only, so it can't tell crossed pairs (user A, user B, reply A, user C,
+ * reply B) from clean ones — nothing in row order says which reply answers which question.
+ * Older rows, which stored the question first and the answer later and so could cross, are
+ * kept away from it: migration 0020 flags the ones whose pairing can't be proven and
+ * `loadHistory` skips them. What reaches this is only ever written whole.
  */
 export function keepPairedExchanges(turns: ChatTurn[]): ChatTurn[] {
   const runs: ChatTurn[][] = [];
@@ -101,11 +101,16 @@ export function keepPairedExchanges(turns: ChatTurn[]): ChatTurn[] {
   return kept;
 }
 
-/** The session's most recent exchanges, oldest first, ready to precede the new question. */
+/**
+ * The session's most recent exchanges, oldest first, ready to precede the new question.
+ * Rows migration 0020 flagged `pairing_unverified` (old rows that may pair a reply with the
+ * wrong question) are left out of what the model sees, though the transcript still shows them.
+ */
 export async function loadHistory(db: HistoryDb, sessionId: string): Promise<ChatTurn[]> {
   // Newest first so the limit keeps the latest messages, then flipped back into chronological order.
   const rows = await db.query<{ sender: "user" | "assistant"; content: string }>(
-    `select sender, content from chat_message where session_id = $1
+    `select sender, content from chat_message
+     where session_id = $1 and not pairing_unverified
      order by ${NEWEST_FIRST} limit $2`,
     [sessionId, HISTORY_LIMIT],
   );
