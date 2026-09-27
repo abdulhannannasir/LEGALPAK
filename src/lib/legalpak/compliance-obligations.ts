@@ -328,17 +328,29 @@ export const changeObligationStatusFn = createServerFn({ method: "POST" })
     return obligation;
   });
 
-/** Same dedup-key shape computeRuleDueDate uses, keyed off the spawned occurrence's own due date rather than "today" — there is no reference date here, only the date the occurrence just advanced to. */
-function periodKeyForDue(recurrenceRule: string, dueIso: string): string {
-  if (recurrenceRule === "annual") return dueIso.slice(0, 4);
-  if (recurrenceRule === "monthly") return dueIso.slice(0, 7);
-  const year = Number(dueIso.slice(0, 4));
-  const month = Number(dueIso.slice(5, 7));
-  return `${year}-Q${Math.ceil(month / 3)}`;
+/**
+ * Advances a period_key by exactly one period. computeRuleDueDate keys monthly/quarterly
+ * periods by the period being *evaluated* (referenceIso), not by the due date — an offset can
+ * push the due date into the next period, so deriving the next key from the spawned occurrence's
+ * due date (rather than stepping the completed occurrence's own key forward) can land on the
+ * wrong period and leave evaluateForCompany unable to find it, creating a second one.
+ */
+function nextPeriodKey(recurrenceRule: string, periodKey: string): string {
+  if (recurrenceRule === "annual") return String(Number(periodKey) + 1);
+  if (recurrenceRule === "monthly") {
+    const year = Number(periodKey.slice(0, 4));
+    const month = Number(periodKey.slice(5, 7));
+    const [nextYear, nextMonth] = month === 12 ? [year + 1, 1] : [year, month + 1];
+    return `${nextYear}-${String(nextMonth).padStart(2, "0")}`;
+  }
+  const year = Number(periodKey.slice(0, 4));
+  const quarter = Number(periodKey.slice(6));
+  const [nextYear, nextQuarter] = quarter === 4 ? [year + 1, 1] : [year, quarter + 1];
+  return `${nextYear}-Q${nextQuarter}`;
 }
 
 async function spawnNextOccurrence(completed: ComplianceObligation, userId: string): Promise<void> {
-  if (!completed.due_date || !completed.recurrence_rule) return;
+  if (!completed.due_date || !completed.recurrence_rule || !completed.period_key) return;
   const months = completed.recurrence_rule === "annual" ? 12 : completed.recurrence_rule === "quarterly" ? 3 : 1;
   const nextDue = addMonthsISO(completed.due_date, months);
   if (!nextDue) return;
@@ -362,7 +374,7 @@ async function spawnNextOccurrence(completed: ComplianceObligation, userId: stri
       completed.priority,
       true,
       completed.recurrence_rule,
-      periodKeyForDue(completed.recurrence_rule, nextDue),
+      nextPeriodKey(completed.recurrence_rule, completed.period_key),
       JSON.stringify(completed.required_documents),
       userId,
     ],
