@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { History } from "lucide-react";
 import { listCompanyActivityFn, listMatterActivityFn, type AuditLogRow } from "@/lib/legalpak/audit";
 import { listObligationActivityFn } from "@/lib/legalpak/compliance-obligations";
+import { listTaskActivityFn } from "@/lib/legalpak/tasks";
 
 const ACTION_LABEL: Record<string, (m: Record<string, unknown>) => string> = {
   MATTER_CREATED: (m) => `Matter created${m.type ? ` (${String(m.type).replace(/_/g, " ").toLowerCase()})` : ""}`,
@@ -36,6 +37,18 @@ const ACTION_LABEL: Record<string, (m: Record<string, unknown>) => string> = {
   OBLIGATION_COMPLETED: () => "Marked complete",
   OBLIGATION_NOTE_ADDED: () => "Note added",
   OBLIGATION_DOCUMENT_UPLOADED: (m) => `Uploaded ${m.name ?? "a document"}`,
+  TASK_CREATED: (m) => `Task created${m.title ? ` (${m.title})` : ""}`,
+  TASK_UPDATED: () => "Task details updated",
+  TASK_STATUS_CHANGED: (m) => `Status changed: ${m.from ?? "?"} → ${m.to ?? "?"}`,
+  TASK_COMPLETED: () => "Marked done",
+  TASK_ASSIGNED: (m) => (m.assigneeName ? `Assigned to ${m.assigneeName}` : "Unassigned"),
+  TASK_DUE_DATE_CHANGED: (m) => `Due date changed${m.to ? ` to ${m.to}` : " (cleared)"}`,
+  TASK_LINKED: () => "Related company/document updated",
+  TASK_DELETED: () => "Task deleted",
+  TASK_STEP_ADDED: (m) => `Step added${m.title ? ` (${m.title})` : ""}`,
+  TASK_STEP_TOGGLED: (m) => `${m.done ? "Checked off" : "Reopened"} step${m.title ? ` "${m.title}"` : ""}`,
+  TASK_STEP_DELETED: (m) => `Step removed${m.title ? ` (${m.title})` : ""}`,
+  TASK_COMMENT_ADDED: () => "Comment added",
   EMPLOYEE_ADDED: (m) => `Employee added${m.name ? ` (${m.name}${m.jobTitle ? `, ${m.jobTitle}` : ""})` : ""}`,
   EMPLOYEE_UPDATED: (m) => `Employee details updated${m.name ? ` (${m.name})` : ""}`,
   EMPLOYEE_STATUS_CHANGED: (m) =>
@@ -59,25 +72,29 @@ export function ActivityTimeline({
   matterId,
   companyId,
   obligationId,
+  taskId,
   title = "Activity",
 }: {
   matterId?: string;
   companyId?: string;
   obligationId?: string;
+  taskId?: string;
   title?: string;
 }) {
   const [rows, setRows] = useState<AuditLogRow[] | null>(null);
 
   useEffect(() => {
-    const request = obligationId
-      ? listObligationActivityFn({ data: obligationId })
-      : matterId
-        ? listMatterActivityFn({ data: matterId })
-        : companyId
-          ? listCompanyActivityFn({ data: companyId })
-          : Promise.resolve([]);
+    const request = taskId
+      ? listTaskActivityFn({ data: taskId })
+      : obligationId
+        ? listObligationActivityFn({ data: obligationId })
+        : matterId
+          ? listMatterActivityFn({ data: matterId })
+          : companyId
+            ? listCompanyActivityFn({ data: companyId })
+            : Promise.resolve([]);
     request.then(setRows).catch(() => setRows([]));
-  }, [matterId, companyId, obligationId]);
+  }, [matterId, companyId, obligationId, taskId]);
 
   return (
     <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5">

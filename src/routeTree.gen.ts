@@ -32,6 +32,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ShareChangesRouteImport } from './routes/share-changes'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as TaxAssistantRouteImport } from './routes/tax-assistant'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
@@ -58,6 +59,7 @@ import { Route as HelpDeskTenantProtectionRouteImport } from './routes/help-desk
 import { Route as HelpDeskUtilityDisputeRouteImport } from './routes/help-desk.utility-dispute'
 import { Route as MattersMatterIdRouteImport } from './routes/matters.$matterId'
 import { Route as SecpIndexRouteImport } from './routes/secp.index'
+import { Route as TasksTaskIdRouteImport } from './routes/tasks_.$taskId'
 import { Route as TaxIndexRouteImport } from './routes/tax.index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronDeadlineRemindersRouteImport } from './routes/api/cron/deadline-reminders'
@@ -180,6 +182,11 @@ const ShareChangesRoute = ShareChangesRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TasksRoute = TasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TaxAssistantRoute = TaxAssistantRouteImport.update({
@@ -313,6 +320,11 @@ const SecpIndexRoute = SecpIndexRouteImport.update({
   path: '/secp/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TasksTaskIdRoute = TasksTaskIdRouteImport.update({
+  id: '/tasks_/$taskId',
+  path: '/tasks/$taskId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TaxIndexRoute = TaxIndexRouteImport.update({
   id: '/tax/',
   path: '/tax/',
@@ -383,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/share-changes': typeof ShareChangesRoute
   '/signup': typeof SignupRoute
+  '/tasks': typeof TasksRoute
   '/tax-assistant': typeof TaxAssistantRoute
   '/terms': typeof TermsRoute
   '/admin/billing': typeof AdminBillingRoute
@@ -405,6 +418,7 @@ export interface FileRoutesByFullPath {
   '/help-desk/tenant-protection': typeof HelpDeskTenantProtectionRoute
   '/help-desk/utility-dispute': typeof HelpDeskUtilityDisputeRoute
   '/matters/$matterId': typeof MattersMatterIdRoute
+  '/tasks/$taskId': typeof TasksTaskIdRoute
   '/citizen/': typeof CitizenIndexRoute
   '/companies/': typeof CompaniesIndexRoute
   '/help-desk/': typeof HelpDeskIndexRoute
@@ -442,6 +456,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/share-changes': typeof ShareChangesRoute
   '/signup': typeof SignupRoute
+  '/tasks': typeof TasksRoute
   '/tax-assistant': typeof TaxAssistantRoute
   '/terms': typeof TermsRoute
   '/admin/billing': typeof AdminBillingRoute
@@ -464,6 +479,7 @@ export interface FileRoutesByTo {
   '/help-desk/tenant-protection': typeof HelpDeskTenantProtectionRoute
   '/help-desk/utility-dispute': typeof HelpDeskUtilityDisputeRoute
   '/matters/$matterId': typeof MattersMatterIdRoute
+  '/tasks/$taskId': typeof TasksTaskIdRoute
   '/citizen': typeof CitizenIndexRoute
   '/companies': typeof CompaniesIndexRoute
   '/help-desk': typeof HelpDeskIndexRoute
@@ -502,6 +518,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/share-changes': typeof ShareChangesRoute
   '/signup': typeof SignupRoute
+  '/tasks': typeof TasksRoute
   '/tax-assistant': typeof TaxAssistantRoute
   '/terms': typeof TermsRoute
   '/admin/billing': typeof AdminBillingRoute
@@ -524,6 +541,7 @@ export interface FileRoutesById {
   '/help-desk/tenant-protection': typeof HelpDeskTenantProtectionRoute
   '/help-desk/utility-dispute': typeof HelpDeskUtilityDisputeRoute
   '/matters/$matterId': typeof MattersMatterIdRoute
+  '/tasks_/$taskId': typeof TasksTaskIdRoute
   '/citizen/': typeof CitizenIndexRoute
   '/companies/': typeof CompaniesIndexRoute
   '/help-desk/': typeof HelpDeskIndexRoute
@@ -563,6 +581,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/share-changes'
     | '/signup'
+    | '/tasks'
     | '/tax-assistant'
     | '/terms'
     | '/admin/billing'
@@ -585,6 +604,7 @@ export interface FileRouteTypes {
     | '/help-desk/tenant-protection'
     | '/help-desk/utility-dispute'
     | '/matters/$matterId'
+    | '/tasks/$taskId'
     | '/citizen/'
     | '/companies/'
     | '/help-desk/'
@@ -622,6 +642,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/share-changes'
     | '/signup'
+    | '/tasks'
     | '/tax-assistant'
     | '/terms'
     | '/admin/billing'
@@ -644,6 +665,7 @@ export interface FileRouteTypes {
     | '/help-desk/tenant-protection'
     | '/help-desk/utility-dispute'
     | '/matters/$matterId'
+    | '/tasks/$taskId'
     | '/citizen'
     | '/companies'
     | '/help-desk'
@@ -681,6 +703,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/share-changes'
     | '/signup'
+    | '/tasks'
     | '/tax-assistant'
     | '/terms'
     | '/admin/billing'
@@ -703,6 +726,7 @@ export interface FileRouteTypes {
     | '/help-desk/tenant-protection'
     | '/help-desk/utility-dispute'
     | '/matters/$matterId'
+    | '/tasks_/$taskId'
     | '/citizen/'
     | '/companies/'
     | '/help-desk/'
@@ -741,6 +765,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   ShareChangesRoute: typeof ShareChangesRoute
   SignupRoute: typeof SignupRoute
+  TasksRoute: typeof TasksRoute
   TaxAssistantRoute: typeof TaxAssistantRoute
   TermsRoute: typeof TermsRoute
   AdminBillingRoute: typeof AdminBillingRoute
@@ -763,6 +788,7 @@ export interface RootRouteChildren {
   HelpDeskTenantProtectionRoute: typeof HelpDeskTenantProtectionRoute
   HelpDeskUtilityDisputeRoute: typeof HelpDeskUtilityDisputeRoute
   MattersMatterIdRoute: typeof MattersMatterIdRoute
+  TasksTaskIdRoute: typeof TasksTaskIdRoute
   CitizenIndexRoute: typeof CitizenIndexRoute
   CompaniesIndexRoute: typeof CompaniesIndexRoute
   HelpDeskIndexRoute: typeof HelpDeskIndexRoute
@@ -938,6 +964,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tasks': {
+      id: '/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof TasksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tax-assistant': {
@@ -1122,6 +1155,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SecpIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tasks_/$taskId': {
+      id: '/tasks_/$taskId'
+      path: '/tasks/$taskId'
+      fullPath: '/tasks/$taskId'
+      preLoaderRoute: typeof TasksTaskIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tax/': {
       id: '/tax/'
       path: '/tax'
@@ -1205,6 +1245,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   ShareChangesRoute: ShareChangesRoute,
   SignupRoute: SignupRoute,
+  TasksRoute: TasksRoute,
   TaxAssistantRoute: TaxAssistantRoute,
   TermsRoute: TermsRoute,
   AdminBillingRoute: AdminBillingRoute,
@@ -1227,6 +1268,7 @@ const rootRouteChildren: RootRouteChildren = {
   HelpDeskTenantProtectionRoute: HelpDeskTenantProtectionRoute,
   HelpDeskUtilityDisputeRoute: HelpDeskUtilityDisputeRoute,
   MattersMatterIdRoute: MattersMatterIdRoute,
+  TasksTaskIdRoute: TasksTaskIdRoute,
   CitizenIndexRoute: CitizenIndexRoute,
   CompaniesIndexRoute: CompaniesIndexRoute,
   HelpDeskIndexRoute: HelpDeskIndexRoute,

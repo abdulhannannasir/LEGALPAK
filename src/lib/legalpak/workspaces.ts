@@ -22,6 +22,24 @@ export const listWorkspacesFn = createServerFn({ method: "GET" })
     `;
   });
 
+export type WorkspaceMember = { userId: string; name: string | null; email: string; role: string };
+
+/** Every member of a workspace, for assignee pickers (tasks) and similar "who can this go to" UI. */
+export const listWorkspaceMembersFn = createServerFn({ method: "GET" })
+  .validator((workspaceId: string) => z.string().min(1).parse(workspaceId))
+  .middleware([authMiddleware])
+  .handler(async ({ context, data: workspaceId }) => {
+    await requireWorkspaceAccess(context.userId, workspaceId);
+    const sql = await getSql();
+    return sql<WorkspaceMember>`
+      select u.id as "userId", u.name, u.email, wm.role
+      from workspace_member wm
+      join "user" u on u.id = wm.user_id
+      where wm.workspace_id = ${workspaceId}
+      order by u.name asc
+    `;
+  });
+
 export const createWorkspaceFn = createServerFn({ method: "POST" })
   .validator((name: string) => z.string().trim().min(1, "Workspace name is required").parse(name))
   .middleware([authMiddleware])

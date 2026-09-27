@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Building2,
@@ -8,6 +8,7 @@ import {
   FolderOpen,
   FolderUp,
   Landmark,
+  ListTodo,
   MessageCircle,
   Plus,
   Rocket,
@@ -18,9 +19,12 @@ import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { createWorkspaceFn } from "@/lib/legalpak/workspaces";
 import { useCompanyContext } from "@/lib/legalpak/company-context";
+import { listWorkspaceTasksFn, isTaskOverdue, type TaskWithDetails } from "@/lib/legalpak/tasks";
+import { TaskList } from "@/components/tasks/task-list";
 import { CompanyHealthDashboard } from "@/components/compliance/company-health-dashboard";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
+import { EmptyState, SkeletonRows } from "@/components/company-health-widgets";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
@@ -37,6 +41,7 @@ function greeting(): string {
 }
 
 const QUICK_ACTIONS = [
+  { to: "/tasks", label: "New Task", icon: ListTodo },
   { to: "/contracts", label: "Create Contract", icon: Scale },
   { to: "/incorporation", label: "SECP Filing", icon: Rocket },
   { to: "/notices", label: "Legal Notice", icon: Send },
@@ -57,10 +62,10 @@ function DashboardPage() {
   const { user, isPending } = useCurrentUserState();
   if (isPending) return null;
   if (!user) return <RedirectToSignIn />;
-  return <DashboardBody displayName={user.displayName} />;
+  return <DashboardBody displayName={user.displayName} userId={user.id} />;
 }
 
-function DashboardBody({ displayName }: { displayName: string | null }) {
+function DashboardBody({ displayName, userId }: { displayName: string | null; userId: string }) {
   const {
     workspace,
     companies,
@@ -69,13 +74,40 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
     setSelectedCompanyId,
     refreshWorkspace,
   } = useCompanyContext();
+  const [tasks, setTasks] = useState<TaskWithDetails[] | null>(null);
   const [workspaceName, setWorkspaceName] = useState("");
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
+
+  useEffect(() => {
+    if (!workspace) return;
+    listWorkspaceTasksFn({ data: workspace.id })
+      .then(setTasks)
+      .catch(() => setTasks([]));
+  }, [workspace]);
 
   // Dashboard always focuses on one company's health — default to the first
   // one when the header switcher is set to "All companies" (selectedCompanyId
   // === null) rather than rendering an aggregate view this page isn't built for.
   const primaryCompany = selectedCompany ?? companies[0] ?? null;
+
+  // "My Tasks" favors tasks assigned to the signed-in user; when they haven't
+  // claimed any yet it falls back to the primary company's open tasks so the
+  // widget isn't empty on day one.
+  const myTasks = useMemo(() => {
+    if (!tasks) return [];
+    const open = tasks.filter((t) => t.status !== "done");
+    const mine = open.filter((t) => t.assignee_id === userId);
+    const pool = mine.length > 0 ? mine : open.filter((t) => t.company_id === primaryCompany?.id);
+    return [...pool]
+      .sort((a, b) => {
+        const overdueDiff = Number(isTaskOverdue(b)) - Number(isTaskOverdue(a));
+        if (overdueDiff !== 0) return overdueDiff;
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return a.due_date.localeCompare(b.due_date);
+      })
+      .slice(0, 4);
+  }, [tasks, userId, primaryCompany]);
 
   if (workspace === undefined) return null;
 
@@ -176,10 +208,27 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
           )}
 
 
+          {/* My Tasks */}
+          <section>
+            <SectionHeading title="My Tasks" action={{ to: "/tasks", label: "View all tasks" }} />
+            {tasks === null ? (
+              <SkeletonRows className="mt-3" count={2} />
+            ) : myTasks.length === 0 ? (
+              <EmptyState
+                className="mt-3"
+                text="No open tasks yet — turn a filing or compliance item into a trackable workflow."
+              />
+            ) : (
+              <div className="mt-3">
+                <TaskList tasks={myTasks} showCompany={companies.length > 1} />
+              </div>
+            )}
+          </section>
+
           {/* Quick Actions */}
           <section>
             <SectionHeading title="Quick Actions" />
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {QUICK_ACTIONS.map((a) => {
                 const Icon = a.icon;
                 return (
