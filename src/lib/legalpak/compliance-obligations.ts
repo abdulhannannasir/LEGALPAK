@@ -328,12 +328,20 @@ export const changeObligationStatusFn = createServerFn({ method: "POST" })
     return obligation;
   });
 
+/** Whether periodKey looks like recurrenceRule's own format — false for one left over from before this obligation's recurrence was edited (e.g. quarterly to monthly), which nextPeriodKey would otherwise misparse into a garbage key. */
+function periodKeyMatchesRule(recurrenceRule: string, periodKey: string): boolean {
+  if (recurrenceRule === "annual") return /^\d{4}$/.test(periodKey);
+  if (recurrenceRule === "monthly") return /^\d{4}-\d{2}$/.test(periodKey);
+  return /^\d{4}-Q[1-4]$/.test(periodKey);
+}
+
 /**
  * Advances a period_key by exactly one period. computeRuleDueDate keys monthly/quarterly
  * periods by the period being *evaluated* (referenceIso), not by the due date — an offset can
  * push the due date into the next period, so deriving the next key from the spawned occurrence's
  * due date (rather than stepping the completed occurrence's own key forward) can land on the
- * wrong period and leave evaluateForCompany unable to find it, creating a second one.
+ * wrong period and leave evaluateForCompany unable to find it, creating a second one. Caller must
+ * check periodKeyMatchesRule first.
  */
 function nextPeriodKey(recurrenceRule: string, periodKey: string): string {
   if (recurrenceRule === "annual") return String(Number(periodKey) + 1);
@@ -349,11 +357,33 @@ function nextPeriodKey(recurrenceRule: string, periodKey: string): string {
   return `${nextYear}-Q${nextQuarter}`;
 }
 
+/** Same dedup-key shape computeRuleDueDate uses, keyed off the spawned occurrence's own due date — the best available guess when there is no reliable prior key to advance (a manually created obligation, which no rule evaluation will ever match against anyway). */
+function periodKeyForDue(recurrenceRule: string, dueIso: string): string {
+  if (recurrenceRule === "annual") return dueIso.slice(0, 4);
+  if (recurrenceRule === "monthly") return dueIso.slice(0, 7);
+  const year = Number(dueIso.slice(0, 4));
+  const month = Number(dueIso.slice(5, 7));
+  return `${year}-Q${Math.ceil(month / 3)}`;
+}
+
 async function spawnNextOccurrence(completed: ComplianceObligation, userId: string): Promise<void> {
-  if (!completed.due_date || !completed.recurrence_rule || !completed.period_key) return;
+  if (!completed.due_date || !completed.recurrence_rule) return;
   const months = completed.recurrence_rule === "annual" ? 12 : completed.recurrence_rule === "quarterly" ? 3 : 1;
   const nextDue = addMonthsISO(completed.due_date, months);
   if (!nextDue) return;
+  const priorKeyUsable =
+    completed.period_key !== null && periodKeyMatchesRule(completed.recurrence_rule, completed.period_key);
+  // A rule-generated obligation (rule_id set) is what evaluateForCompany's own dedup lookup
+  // matches against, and that lookup trusts computeRuleDueDate's period key completely — a
+  // guessed key here could pick a period evaluateForCompany will never look for, silently
+  // ending the recurrence, or one it later creates anyway, duplicating it. Bail instead and let
+  // evaluateForCompany's own periodic re-scan spawn the correctly-keyed next occurrence itself.
+  // A manually created obligation (no rule_id) is never matched by that lookup — it was never
+  // rule-keyed to begin with, so a due-date-derived guess is exactly as good as any other key.
+  if (completed.rule_id && !priorKeyUsable) return;
+  const periodKey = priorKeyUsable
+    ? nextPeriodKey(completed.recurrence_rule, completed.period_key as string)
+    : periodKeyForDue(completed.recurrence_rule, nextDue);
   const sql = await getSql();
   const id = createId("cobl");
   await sql.query(
@@ -374,7 +404,7 @@ async function spawnNextOccurrence(completed: ComplianceObligation, userId: stri
       completed.priority,
       true,
       completed.recurrence_rule,
-      nextPeriodKey(completed.recurrence_rule, completed.period_key),
+      periodKey,
       JSON.stringify(completed.required_documents),
       userId,
     ],
