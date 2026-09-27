@@ -6,10 +6,13 @@ import {
   FileSpreadsheet,
   FileText,
   Landmark,
+  Lock,
   LifeBuoy,
   MessageCircle,
   Rocket,
   Scale,
+  ShieldCheck,
+  Sparkles,
   Users,
 } from "lucide-react";
 import { GlassNavbar } from "@/components/marketing/GlassNavbar";
@@ -19,16 +22,17 @@ import { PlatformSection } from "@/components/marketing/PlatformSection";
 import { AttorneyConsultCard } from "@/components/marketing/AttorneyConsultCard";
 import { FaqSection } from "@/components/marketing/FaqSection";
 import { FAQS } from "@/lib/marketing/faqs";
+import { CORPORATE_PLAN_PRICE_PKR } from "@/lib/legalpak/billing";
 
 export const Route = createFileRoute("/")({
   component: Home,
   head: () => ({
     meta: [
-      { title: "LegalPak — Pakistan's Legal & Compliance Operating System" },
+      { title: "LegalPak — Pakistan's Corporate Compliance OS" },
       {
         name: "description",
         content:
-          "Start a company, draft a contract, stay compliant, and understand your rights — LegalPak is Pakistan's legal and compliance operating system for SECP filings, contracts, and citizen legal help.",
+          "Manage your Pakistani company's SECP filings, legal documents, contracts and compliance deadlines from one workspace. LegalPak is Pakistan's corporate compliance operating system.",
       },
     ],
   }),
@@ -40,7 +44,7 @@ const ORGANIZATION_JSON_LD = {
   name: "LegalPak",
   url: "https://legalpak.vercel.app",
   description:
-    "Pakistan's legal and compliance operating system — company incorporation, SECP filings, contracts, statutory compliance, and free citizen legal help.",
+    "Pakistan's corporate compliance operating system — company workspaces, SECP filings, compliance deadlines, contracts, and AI corporate counsel, plus free citizen legal help.",
   areaServed: { "@type": "Country", name: "Pakistan" },
   availableLanguage: ["English", "Urdu"],
 };
@@ -114,10 +118,31 @@ const BUSINESS_SERVICES = [
     icon: CalendarClock,
   },
   {
+    to: "/ai-counsel",
+    title: "AI Corporate Counsel",
+    body: "Ask about SECP filings, deadlines and contracts — grounded in the Companies Act 2017, with a human lawyer one click away.",
+    icon: Sparkles,
+  },
+  {
     to: "/guide",
     title: "Filing Guide",
     body: "A plain-language walkthrough of eZfile, SECP forms, and what to prepare before you start a filing.",
     icon: BookOpen,
+  },
+];
+
+const TRUST_POINTS = [
+  {
+    title: "Your documents, your control",
+    body: "Every filing pack, contract and upload is scoped to your workspace — nothing is shared across companies or accounts.",
+  },
+  {
+    title: "Software, not a filing authority",
+    body: "LegalPak drafts execution-ready packs for SECP's eZfile and FBR's IRIS. Submission and the PIN-signed filing itself always happen on the official government system, not on LegalPak.",
+  },
+  {
+    title: "Not a substitute for licensed advice",
+    body: "Deterministic drafting tools and AI Counsel give preliminary guidance under Pakistani law — for binding legal opinions or representation, consult a licensed corporate lawyer.",
   },
 ];
 
@@ -139,46 +164,13 @@ function Home() {
 
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
         <p className="text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
-          Personal
+          Everything, in one workspace
         </p>
         <h2 className="mt-3 text-center font-display text-2xl text-fg sm:text-3xl md:text-4xl">
-          Free legal help
+          The Corporate Compliance OS
         </h2>
-        <div className="mt-10 grid gap-5 sm:grid-cols-2">
-          {PERSONAL_SERVICES.map((s) => {
-            const Icon = s.icon;
-            return (
-              <Link
-                key={s.to}
-                to={s.to}
-                className="group flex flex-col rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-md"
-              >
-                <span className="grid size-11 place-items-center rounded-[var(--radius-md)] bg-accent/10 text-accent">
-                  <Icon className="size-5" strokeWidth={1.75} />
-                </span>
-                <h3 className="mt-5 font-display text-lg text-fg">{s.title}</h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{s.body}</p>
-                <span className="mt-4 flex items-center gap-1 text-xs font-medium text-accent">
-                  Explore <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-
-        <p className="mx-auto mt-16 text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
-          Business
-        </p>
-        <h2 className="mt-3 text-center font-display text-2xl text-fg sm:text-3xl md:text-4xl">
-          The Corporate Suite
-        </h2>
-        <p className="mx-auto mt-3 flex max-w-xl items-center justify-center text-center text-sm text-muted">
-          <span className="rounded-full border border-border bg-surface px-3 py-1">
-            PKR 3,000/month per workspace —{" "}
-            <Link to="/billing" className="text-accent underline">
-              see billing
-            </Link>
-          </span>
+        <p className="mx-auto mt-3 max-w-xl text-center text-sm text-muted">
+          Every tool a Pakistani company needs, from incorporation through ongoing compliance.
         </p>
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {BUSINESS_SERVICES.map((s) => {
@@ -200,6 +192,68 @@ function Home() {
               </Link>
             );
           })}
+        </div>
+      </section>
+
+      <section className="border-t border-border bg-bg px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto max-w-5xl">
+          <p className="text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
+            Security &amp; trust
+          </p>
+          <h2 className="mt-3 text-center font-display text-2xl text-fg sm:text-3xl md:text-4xl">
+            Software, not a shortcut around the law
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-relaxed text-muted">
+            LegalPak is workflow infrastructure for Pakistani companies — not a substitute for
+            licensed legal advice or SECP and FBR's official filing systems.
+          </p>
+          <div className="mt-10 grid gap-5 sm:grid-cols-3">
+            {TRUST_POINTS.map((t) => (
+              <div key={t.title} className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-sm">
+                <ShieldCheck className="size-5 text-accent" strokeWidth={1.75} />
+                <h3 className="mt-4 font-display text-lg text-fg">{t.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{t.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="scroll-mt-20 border-t border-border bg-surface/60 px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-xs font-semibold tracking-[0.2em] text-accent uppercase">Pricing</p>
+          <h2 className="mt-3 font-display text-2xl text-fg sm:text-3xl md:text-4xl">
+            One plan, per workspace
+          </h2>
+          <div className="mt-10 rounded-[var(--radius-lg)] border border-border bg-bg p-8 shadow-sm">
+            <p className="font-display text-4xl text-fg">
+              PKR {CORPORATE_PLAN_PRICE_PKR.toLocaleString("en-PK")}
+              <span className="text-base font-normal text-muted">/month</span>
+            </p>
+            <p className="mt-2 text-sm text-muted">Per workspace — unlimited companies and matters.</p>
+            <ul className="mx-auto mt-6 grid max-w-sm gap-2 text-left text-sm text-muted">
+              {[
+                "Incorporation, annual return, director & share changes",
+                "Compliance calendar with reminders",
+                "Contract library, drafting and review workflow",
+                "Document vault, tax assistant, and AI Counsel",
+              ].map((f) => (
+                <li key={f} className="flex items-start gap-2">
+                  <Lock className="mt-0.5 size-3.5 shrink-0 text-accent" strokeWidth={1.75} />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Link
+              to="/billing"
+              className="mt-8 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-sm)] bg-primary px-6 text-sm font-semibold text-primary-fg shadow-sm transition-all hover:bg-accent hover:shadow-md"
+            >
+              See billing
+            </Link>
+            <p className="mt-3 text-xs text-muted">
+              Citizen Legal Help and the Help Desk & Rights Navigator stay free, no subscription needed.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -225,6 +279,38 @@ function Home() {
                 Request a Consultation
               </Link>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-border px-4 py-14 sm:px-6">
+        <div className="mx-auto max-w-4xl">
+          <p className="text-center text-xs font-semibold tracking-[0.2em] text-accent uppercase">
+            For individuals
+          </p>
+          <h2 className="mt-3 text-center font-display text-xl text-fg sm:text-2xl">
+            Free Legal Help, separate from your business workspace
+          </h2>
+          <p className="mx-auto mt-2 max-w-xl text-center text-sm text-muted">
+            No account, no cost — for personal legal questions, not your company's compliance.
+          </p>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {PERSONAL_SERVICES.map((s) => {
+              const Icon = s.icon;
+              return (
+                <Link
+                  key={s.to}
+                  to={s.to}
+                  className="group flex items-start gap-3 rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-sm transition-colors hover:border-accent"
+                >
+                  <Icon className="mt-0.5 size-5 shrink-0 text-accent" strokeWidth={1.75} />
+                  <div>
+                    <h3 className="font-display text-base text-fg">{s.title}</h3>
+                    <p className="mt-1 text-sm text-muted">{s.body}</p>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

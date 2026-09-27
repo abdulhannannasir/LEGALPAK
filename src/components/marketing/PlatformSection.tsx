@@ -1,55 +1,55 @@
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
-  Briefcase,
+  Building2,
   CalendarClock,
-  Gavel,
-  HeartHandshake,
-  MessageCircle,
+  FileSignature,
+  FolderOpen,
   Scale,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 
 const PLATFORM_AREAS: { title: string; body: string; icon: LucideIcon; to: string }[] = [
   {
-    title: "Business Suite",
-    body: "Company registration, SECP filings, financial statements, and director changes — one workspace per company.",
-    icon: Briefcase,
-    to: "/business",
+    title: "Company workspace",
+    body: "One workspace per company — profile, CUIN/NTN, directors, and every matter in one place.",
+    icon: Building2,
+    to: "/companies",
   },
   {
-    title: "Personal Legal Help",
-    body: "Free AI legal chat, document drafts, and a directory of verified advocates — for individuals, no account needed.",
-    icon: HeartHandshake,
-    to: "/personal",
-  },
-  {
-    title: "Compliance",
-    body: "Every statutory deadline — SECP, tax, and labour filings — in one calendar, with reminders before the clock runs out.",
+    title: "Compliance calendar",
+    body: "Every statutory deadline — SECP, tax, and labour filings — in one calendar, with health status and reminders before the clock runs out.",
     icon: CalendarClock,
     to: "/compliance",
   },
   {
+    title: "SECP filing workflows",
+    body: "Incorporation, annual return, director changes, share changes, and Form 21/45 — each a ready-to-file eZfile pack.",
+    icon: FileSignature,
+    to: "/secp",
+  },
+  {
+    title: "Document vault",
+    body: "Corporate records, SECP filings, tax documents and contracts — versioned, categorized, and searchable across every company.",
+    icon: FolderOpen,
+    to: "/documents",
+  },
+  {
     title: "Contracts",
-    body: "Service, employment, rent, NDA, partnership, and loan agreements drafted under the Contract Act 1872.",
+    body: "Service, employment, rent, NDA, partnership, and loan agreements drafted under the Contract Act 1872, with a Draft → Review → Signed workflow.",
     icon: Scale,
     to: "/contracts",
   },
   {
-    title: "LegalPak Intelligence",
-    body: "Ask in English, Roman Urdu, or Urdu and get preliminary guidance on your rights and next steps.",
-    icon: MessageCircle,
-    to: "/citizen",
-  },
-  {
-    title: "Consult Counsel",
-    body: "When a matter needs judgment, not a template — request a consultation with a verified advocate.",
-    icon: Gavel,
-    to: "/consult",
+    title: "AI corporate counsel",
+    body: "Ask about SECP filings, deadlines, and contracts, grounded in the Companies Act 2017 — with a human lawyer one click away.",
+    icon: Sparkles,
+    to: "/ai-counsel",
   },
 ];
 
-/** The six top-level product desks — the homepage's "explore" anchor target. */
+/** The six core product desks — the homepage's "explore" anchor target. */
 export function PlatformSection() {
   return (
     <section
@@ -61,7 +61,7 @@ export function PlatformSection() {
           The Platform
         </p>
         <h2 className="mt-3 text-center font-display text-2xl text-fg sm:text-3xl md:text-4xl">
-          Six desks. One system.
+          Everything your company's compliance needs
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-sm leading-relaxed text-muted sm:text-base">
           Jump straight to the desk you need.

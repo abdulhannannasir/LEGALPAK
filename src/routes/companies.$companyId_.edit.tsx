@@ -3,7 +3,14 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { getCompanyFn, updateCompanyFn, type Company } from "@/lib/legalpak/companies";
+import {
+  getCompanyFn,
+  updateCompanyFn,
+  COMPANY_TYPES,
+  COMPANY_TYPE_LABEL,
+  type Company,
+} from "@/lib/legalpak/companies";
+import { useCompanyContext } from "@/lib/legalpak/company-context";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 
@@ -27,6 +34,10 @@ type FormState = {
   agmDate: string;
   publicLinked: boolean;
   hasSubsidiary: boolean;
+  registeredAddress: string;
+  businessActivity: string;
+  province: string;
+  city: string;
 };
 
 function fromCompany(c: Company): FormState {
@@ -43,6 +54,10 @@ function fromCompany(c: Company): FormState {
     agmDate: c.agm_date ?? "",
     publicLinked: c.public_linked,
     hasSubsidiary: c.has_subsidiary,
+    registeredAddress: c.registered_address ?? "",
+    businessActivity: c.business_activity ?? "",
+    province: c.province ?? "",
+    city: c.city ?? "",
   };
 }
 
@@ -56,6 +71,7 @@ function EditCompanyPage() {
 function EditCompanyForm() {
   const { companyId } = useParams({ from: "/companies/$companyId_/edit" });
   const navigate = useNavigate();
+  const { refresh: refreshSwitcher } = useCompanyContext();
   const [form, setForm] = useState<FormState | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -89,9 +105,14 @@ function EditCompanyForm() {
           agmDate: form.agmDate || undefined,
           publicLinked: form.publicLinked,
           hasSubsidiary: form.hasSubsidiary,
+          registeredAddress: form.registeredAddress.trim() || undefined,
+          businessActivity: form.businessActivity.trim() || undefined,
+          province: form.province.trim() || undefined,
+          city: form.city.trim() || undefined,
         },
       });
       toast.success("Company updated");
+      refreshSwitcher();
       navigate({ to: "/companies/$companyId", params: { companyId } });
     } catch {
       toast.error("Could not update company");
@@ -130,11 +151,11 @@ function EditCompanyForm() {
           </Field>
           <Field label="Company type">
             <Select value={form.companyType} onChange={(e) => set("companyType", e.target.value)}>
-              <option value="smc">Single member company</option>
-              <option value="private">Private limited</option>
-              <option value="public">Public unlisted</option>
-              <option value="listed">Listed</option>
-              <option value="s42">Section 42 / NPO</option>
+              {COMPANY_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {COMPANY_TYPE_LABEL[t]}
+                </option>
+              ))}
             </Select>
           </Field>
           <Field label="Paid-up capital (PKR)">
@@ -172,6 +193,18 @@ function EditCompanyForm() {
               value={form.employees}
               onChange={(e) => set("employees", e.target.value)}
             />
+          </Field>
+          <Field label="Registered address" className="sm:col-span-2">
+            <Input value={form.registeredAddress} onChange={(e) => set("registeredAddress", e.target.value)} />
+          </Field>
+          <Field label="City">
+            <Input value={form.city} onChange={(e) => set("city", e.target.value)} />
+          </Field>
+          <Field label="Province">
+            <Input value={form.province} onChange={(e) => set("province", e.target.value)} />
+          </Field>
+          <Field label="Business activity" className="sm:col-span-2">
+            <Input value={form.businessActivity} onChange={(e) => set("businessActivity", e.target.value)} />
           </Field>
           <label className="flex min-h-11 items-center gap-2 text-sm">
             <input

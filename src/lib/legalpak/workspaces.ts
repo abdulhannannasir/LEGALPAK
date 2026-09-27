@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { createId } from "./id";
+import { requireWorkspaceAccess } from "./access";
 import { logAudit } from "./audit";
 import type { Workspace } from "./types";
 
@@ -18,6 +19,24 @@ export const listWorkspacesFn = createServerFn({ method: "GET" })
       join workspace_member wm on wm.workspace_id = w.id
       where wm.user_id = ${context.userId}
       order by w.created_at asc
+    `;
+  });
+
+export type WorkspaceMember = { userId: string; name: string | null; email: string; role: string };
+
+/** Every member of a workspace, for assignee pickers (tasks) and similar "who can this go to" UI. */
+export const listWorkspaceMembersFn = createServerFn({ method: "GET" })
+  .validator((workspaceId: string) => z.string().min(1).parse(workspaceId))
+  .middleware([authMiddleware])
+  .handler(async ({ context, data: workspaceId }) => {
+    await requireWorkspaceAccess(context.userId, workspaceId);
+    const sql = await getSql();
+    return sql<WorkspaceMember>`
+      select u.id as "userId", u.name, u.email, wm.role
+      from workspace_member wm
+      join "user" u on u.id = wm.user_id
+      where wm.workspace_id = ${workspaceId}
+      order by u.name asc
     `;
   });
 
@@ -49,6 +68,33 @@ export const createWorkspaceFn = createServerFn({ method: "POST" })
       entityType: "workspace",
       entityId: workspace.id,
       metadata: { name },
+    }).catch(() => {});
+    return workspace;
+  });
+
+export const renameWorkspaceFn = createServerFn({ method: "POST" })
+  .validator((input: { workspaceId: string; name: string }) =>
+    z.object({ workspaceId: z.string().min(1), name: z.string().trim().min(1, "Workspace name is required") }).parse(
+      input,
+    ),
+  )
+  .middleware([authMiddleware])
+  .handler(async ({ context, data: input }) => {
+    const { role } = await requireWorkspaceAccess(context.userId, input.workspaceId);
+    const sql = await getSql();
+    const rows = await sql<{ id: string; name: string }>`
+      update workspace set name = ${input.name}, updated_at = now()
+      where id = ${input.workspaceId}
+      returning id, name
+    `;
+    const workspace = { ...rows[0], role } satisfies Workspace;
+    logAudit({
+      workspaceId: workspace.id,
+      userId: context.userId,
+      action: "WORKSPACE_RENAMED",
+      entityType: "workspace",
+      entityId: workspace.id,
+      metadata: { name: input.name },
     }).catch(() => {});
     return workspace;
   });

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { createId } from "./id";
-import { requireMatterAccess, requireWorkspaceAccess } from "./access";
+import { requireCompanyAccess, requireMatterAccess, requireWorkspaceAccess } from "./access";
 import type { Json } from "./types";
 
 export type AuditEntry = {
@@ -71,7 +71,7 @@ export const listMatterActivityFn = createServerFn({ method: "GET" })
     );
   });
 
-export type WorkspaceAuditLogRow = AuditLogRow & { company_name: string | null };
+export type WorkspaceAuditLogRow = AuditLogRow & { company_id: string | null; company_name: string | null };
 
 /** Latest activity across every company in a workspace, for the dashboard's Recent Activity feed. */
 export const listWorkspaceActivityFn = createServerFn({ method: "GET" })
@@ -85,7 +85,7 @@ export const listWorkspaceActivityFn = createServerFn({ method: "GET" })
         a.id, a.action, a.entity_type, a.metadata,
         a.created_at::text as created_at,
         u.name as user_name, u.email as user_email,
-        c.name as company_name
+        a.company_id, c.name as company_name
       from audit_log a
       left join "user" u on u.id = a.user_id
       left join company c on c.id = a.company_id
@@ -93,5 +93,26 @@ export const listWorkspaceActivityFn = createServerFn({ method: "GET" })
       order by a.created_at desc
       limit 12`,
       [workspaceId],
+    );
+  });
+
+/** Latest activity for one company — same shape as the matter feed, scoped by company instead. */
+export const listCompanyActivityFn = createServerFn({ method: "GET" })
+  .validator((companyId: string) => z.string().min(1).parse(companyId))
+  .middleware([authMiddleware])
+  .handler(async ({ context, data: companyId }) => {
+    await requireCompanyAccess(context.userId, companyId);
+    const sql = await getSql();
+    return sql.query<AuditLogRow>(
+      `select
+        a.id, a.action, a.entity_type, a.metadata,
+        a.created_at::text as created_at,
+        u.name as user_name, u.email as user_email
+      from audit_log a
+      left join "user" u on u.id = a.user_id
+      where a.company_id = $1
+      order by a.created_at desc
+      limit 12`,
+      [companyId],
     );
   });

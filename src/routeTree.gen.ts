@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountsRouteImport } from './routes/accounts'
+import { Route as AiCounselRouteImport } from './routes/ai-counsel'
 import { Route as BillingRouteImport } from './routes/billing'
 import { Route as BusinessRouteImport } from './routes/business'
 import { Route as ComplianceRouteImport } from './routes/compliance'
@@ -28,7 +29,10 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as NoticesRouteImport } from './routes/notices'
 import { Route as PersonalRouteImport } from './routes/personal'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ShareChangesRouteImport } from './routes/share-changes'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as TaxAssistantRouteImport } from './routes/tax-assistant'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
@@ -37,8 +41,12 @@ import { Route as CitizenIndexRouteImport } from './routes/citizen.index'
 import { Route as CitizenChatRouteImport } from './routes/citizen.chat'
 import { Route as CitizenDocumentsRouteImport } from './routes/citizen.documents'
 import { Route as CitizenLawyersRouteImport } from './routes/citizen.lawyers'
+import { Route as CompaniesIndexRouteImport } from './routes/companies.index'
 import { Route as CompaniesCompanyIdRouteImport } from './routes/companies.$companyId'
 import { Route as CompaniesNewRouteImport } from './routes/companies.new'
+import { Route as ComplianceObligationIdRouteImport } from './routes/compliance_.$obligationId'
+import { Route as ComplianceCalendarRouteImport } from './routes/compliance_.calendar'
+import { Route as ComplianceRulesRouteImport } from './routes/compliance_.rules'
 import { Route as ContractsTypeIdRouteImport } from './routes/contracts_.$typeId'
 import { Route as HelpDeskIndexRouteImport } from './routes/help-desk.index'
 import { Route as HelpDeskBouncedChequeRouteImport } from './routes/help-desk.bounced-cheque'
@@ -50,9 +58,16 @@ import { Route as HelpDeskSuccessionRouteImport } from './routes/help-desk.succe
 import { Route as HelpDeskTenantProtectionRouteImport } from './routes/help-desk.tenant-protection'
 import { Route as HelpDeskUtilityDisputeRouteImport } from './routes/help-desk.utility-dispute'
 import { Route as MattersMatterIdRouteImport } from './routes/matters.$matterId'
+import { Route as SecpIndexRouteImport } from './routes/secp.index'
+import { Route as TasksTaskIdRouteImport } from './routes/tasks_.$taskId'
+import { Route as TaxIndexRouteImport } from './routes/tax.index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronDeadlineRemindersRouteImport } from './routes/api/cron/deadline-reminders'
+import { Route as CompaniesCompanyIdDocumentsRouteImport } from './routes/companies.$companyId_.documents'
 import { Route as CompaniesCompanyIdEditRouteImport } from './routes/companies.$companyId_.edit'
+import { Route as CompaniesCompanyIdEmployeesRouteImport } from './routes/companies.$companyId_.employees'
+import { Route as CompaniesCompanyIdSettingsRouteImport } from './routes/companies.$companyId_.settings'
+import { Route as CompaniesCompanyIdEmployeesEmployeeIdRouteImport } from './routes/companies.$companyId_.employees_.$employeeId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -62,6 +77,11 @@ const IndexRoute = IndexRouteImport.update({
 const AccountsRoute = AccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiCounselRoute = AiCounselRouteImport.update({
+  id: '/ai-counsel',
+  path: '/ai-counsel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BillingRoute = BillingRouteImport.update({
@@ -149,9 +169,24 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShareChangesRoute = ShareChangesRouteImport.update({
+  id: '/share-changes',
+  path: '/share-changes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TasksRoute = TasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TaxAssistantRoute = TaxAssistantRouteImport.update({
@@ -194,6 +229,11 @@ const CitizenLawyersRoute = CitizenLawyersRouteImport.update({
   path: '/citizen/lawyers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompaniesIndexRoute = CompaniesIndexRouteImport.update({
+  id: '/companies/',
+  path: '/companies/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CompaniesCompanyIdRoute = CompaniesCompanyIdRouteImport.update({
   id: '/companies/$companyId',
   path: '/companies/$companyId',
@@ -202,6 +242,21 @@ const CompaniesCompanyIdRoute = CompaniesCompanyIdRouteImport.update({
 const CompaniesNewRoute = CompaniesNewRouteImport.update({
   id: '/companies/new',
   path: '/companies/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComplianceObligationIdRoute = ComplianceObligationIdRouteImport.update({
+  id: '/compliance_/$obligationId',
+  path: '/compliance/$obligationId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComplianceCalendarRoute = ComplianceCalendarRouteImport.update({
+  id: '/compliance_/calendar',
+  path: '/compliance/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComplianceRulesRoute = ComplianceRulesRouteImport.update({
+  id: '/compliance_/rules',
+  path: '/compliance/rules',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContractsTypeIdRoute = ContractsTypeIdRouteImport.update({
@@ -260,6 +315,21 @@ const MattersMatterIdRoute = MattersMatterIdRouteImport.update({
   path: '/matters/$matterId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SecpIndexRoute = SecpIndexRouteImport.update({
+  id: '/secp/',
+  path: '/secp/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TasksTaskIdRoute = TasksTaskIdRouteImport.update({
+  id: '/tasks_/$taskId',
+  path: '/tasks/$taskId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TaxIndexRoute = TaxIndexRouteImport.update({
+  id: '/tax/',
+  path: '/tax/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -271,15 +341,40 @@ const ApiCronDeadlineRemindersRoute =
     path: '/api/cron/deadline-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const CompaniesCompanyIdDocumentsRoute =
+  CompaniesCompanyIdDocumentsRouteImport.update({
+    id: '/companies/$companyId_/documents',
+    path: '/companies/$companyId/documents',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const CompaniesCompanyIdEditRoute = CompaniesCompanyIdEditRouteImport.update({
   id: '/companies/$companyId_/edit',
   path: '/companies/$companyId/edit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompaniesCompanyIdEmployeesRoute =
+  CompaniesCompanyIdEmployeesRouteImport.update({
+    id: '/companies/$companyId_/employees',
+    path: '/companies/$companyId/employees',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CompaniesCompanyIdSettingsRoute =
+  CompaniesCompanyIdSettingsRouteImport.update({
+    id: '/companies/$companyId_/settings',
+    path: '/companies/$companyId/settings',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CompaniesCompanyIdEmployeesEmployeeIdRoute =
+  CompaniesCompanyIdEmployeesEmployeeIdRouteImport.update({
+    id: '/companies/$companyId_/employees_/$employeeId',
+    path: '/companies/$companyId/employees/$employeeId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
+  '/ai-counsel': typeof AiCounselRoute
   '/billing': typeof BillingRoute
   '/business': typeof BusinessRoute
   '/compliance': typeof ComplianceRoute
@@ -297,7 +392,10 @@ export interface FileRoutesByFullPath {
   '/notices': typeof NoticesRoute
   '/personal': typeof PersonalRoute
   '/privacy': typeof PrivacyRoute
+  '/settings': typeof SettingsRoute
+  '/share-changes': typeof ShareChangesRoute
   '/signup': typeof SignupRoute
+  '/tasks': typeof TasksRoute
   '/tax-assistant': typeof TaxAssistantRoute
   '/terms': typeof TermsRoute
   '/admin/billing': typeof AdminBillingRoute
@@ -307,6 +405,9 @@ export interface FileRoutesByFullPath {
   '/citizen/lawyers': typeof CitizenLawyersRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/companies/new': typeof CompaniesNewRoute
+  '/compliance/$obligationId': typeof ComplianceObligationIdRoute
+  '/compliance/calendar': typeof ComplianceCalendarRoute
+  '/compliance/rules': typeof ComplianceRulesRoute
   '/contracts/$typeId': typeof ContractsTypeIdRoute
   '/help-desk/bounced-cheque': typeof HelpDeskBouncedChequeRoute
   '/help-desk/cyber-report': typeof HelpDeskCyberReportRoute
@@ -317,15 +418,24 @@ export interface FileRoutesByFullPath {
   '/help-desk/tenant-protection': typeof HelpDeskTenantProtectionRoute
   '/help-desk/utility-dispute': typeof HelpDeskUtilityDisputeRoute
   '/matters/$matterId': typeof MattersMatterIdRoute
+  '/tasks/$taskId': typeof TasksTaskIdRoute
   '/citizen/': typeof CitizenIndexRoute
+  '/companies/': typeof CompaniesIndexRoute
   '/help-desk/': typeof HelpDeskIndexRoute
+  '/secp/': typeof SecpIndexRoute
+  '/tax/': typeof TaxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/deadline-reminders': typeof ApiCronDeadlineRemindersRoute
+  '/companies/$companyId/documents': typeof CompaniesCompanyIdDocumentsRoute
   '/companies/$companyId/edit': typeof CompaniesCompanyIdEditRoute
+  '/companies/$companyId/employees': typeof CompaniesCompanyIdEmployeesRoute
+  '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
+  '/companies/$companyId/employees/$employeeId': typeof CompaniesCompanyIdEmployeesEmployeeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
+  '/ai-counsel': typeof AiCounselRoute
   '/billing': typeof BillingRoute
   '/business': typeof BusinessRoute
   '/compliance': typeof ComplianceRoute
@@ -343,7 +453,10 @@ export interface FileRoutesByTo {
   '/notices': typeof NoticesRoute
   '/personal': typeof PersonalRoute
   '/privacy': typeof PrivacyRoute
+  '/settings': typeof SettingsRoute
+  '/share-changes': typeof ShareChangesRoute
   '/signup': typeof SignupRoute
+  '/tasks': typeof TasksRoute
   '/tax-assistant': typeof TaxAssistantRoute
   '/terms': typeof TermsRoute
   '/admin/billing': typeof AdminBillingRoute
@@ -353,6 +466,9 @@ export interface FileRoutesByTo {
   '/citizen/lawyers': typeof CitizenLawyersRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/companies/new': typeof CompaniesNewRoute
+  '/compliance/$obligationId': typeof ComplianceObligationIdRoute
+  '/compliance/calendar': typeof ComplianceCalendarRoute
+  '/compliance/rules': typeof ComplianceRulesRoute
   '/contracts/$typeId': typeof ContractsTypeIdRoute
   '/help-desk/bounced-cheque': typeof HelpDeskBouncedChequeRoute
   '/help-desk/cyber-report': typeof HelpDeskCyberReportRoute
@@ -363,16 +479,25 @@ export interface FileRoutesByTo {
   '/help-desk/tenant-protection': typeof HelpDeskTenantProtectionRoute
   '/help-desk/utility-dispute': typeof HelpDeskUtilityDisputeRoute
   '/matters/$matterId': typeof MattersMatterIdRoute
+  '/tasks/$taskId': typeof TasksTaskIdRoute
   '/citizen': typeof CitizenIndexRoute
+  '/companies': typeof CompaniesIndexRoute
   '/help-desk': typeof HelpDeskIndexRoute
+  '/secp': typeof SecpIndexRoute
+  '/tax': typeof TaxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/deadline-reminders': typeof ApiCronDeadlineRemindersRoute
+  '/companies/$companyId/documents': typeof CompaniesCompanyIdDocumentsRoute
   '/companies/$companyId/edit': typeof CompaniesCompanyIdEditRoute
+  '/companies/$companyId/employees': typeof CompaniesCompanyIdEmployeesRoute
+  '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
+  '/companies/$companyId/employees/$employeeId': typeof CompaniesCompanyIdEmployeesEmployeeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
+  '/ai-counsel': typeof AiCounselRoute
   '/billing': typeof BillingRoute
   '/business': typeof BusinessRoute
   '/compliance': typeof ComplianceRoute
@@ -390,7 +515,10 @@ export interface FileRoutesById {
   '/notices': typeof NoticesRoute
   '/personal': typeof PersonalRoute
   '/privacy': typeof PrivacyRoute
+  '/settings': typeof SettingsRoute
+  '/share-changes': typeof ShareChangesRoute
   '/signup': typeof SignupRoute
+  '/tasks': typeof TasksRoute
   '/tax-assistant': typeof TaxAssistantRoute
   '/terms': typeof TermsRoute
   '/admin/billing': typeof AdminBillingRoute
@@ -400,6 +528,9 @@ export interface FileRoutesById {
   '/citizen/lawyers': typeof CitizenLawyersRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/companies/new': typeof CompaniesNewRoute
+  '/compliance_/$obligationId': typeof ComplianceObligationIdRoute
+  '/compliance_/calendar': typeof ComplianceCalendarRoute
+  '/compliance_/rules': typeof ComplianceRulesRoute
   '/contracts_/$typeId': typeof ContractsTypeIdRoute
   '/help-desk/bounced-cheque': typeof HelpDeskBouncedChequeRoute
   '/help-desk/cyber-report': typeof HelpDeskCyberReportRoute
@@ -410,17 +541,26 @@ export interface FileRoutesById {
   '/help-desk/tenant-protection': typeof HelpDeskTenantProtectionRoute
   '/help-desk/utility-dispute': typeof HelpDeskUtilityDisputeRoute
   '/matters/$matterId': typeof MattersMatterIdRoute
+  '/tasks_/$taskId': typeof TasksTaskIdRoute
   '/citizen/': typeof CitizenIndexRoute
+  '/companies/': typeof CompaniesIndexRoute
   '/help-desk/': typeof HelpDeskIndexRoute
+  '/secp/': typeof SecpIndexRoute
+  '/tax/': typeof TaxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/deadline-reminders': typeof ApiCronDeadlineRemindersRoute
+  '/companies/$companyId_/documents': typeof CompaniesCompanyIdDocumentsRoute
   '/companies/$companyId_/edit': typeof CompaniesCompanyIdEditRoute
+  '/companies/$companyId_/employees': typeof CompaniesCompanyIdEmployeesRoute
+  '/companies/$companyId_/settings': typeof CompaniesCompanyIdSettingsRoute
+  '/companies/$companyId_/employees_/$employeeId': typeof CompaniesCompanyIdEmployeesEmployeeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/accounts'
+    | '/ai-counsel'
     | '/billing'
     | '/business'
     | '/compliance'
@@ -438,7 +578,10 @@ export interface FileRouteTypes {
     | '/notices'
     | '/personal'
     | '/privacy'
+    | '/settings'
+    | '/share-changes'
     | '/signup'
+    | '/tasks'
     | '/tax-assistant'
     | '/terms'
     | '/admin/billing'
@@ -448,6 +591,9 @@ export interface FileRouteTypes {
     | '/citizen/lawyers'
     | '/companies/$companyId'
     | '/companies/new'
+    | '/compliance/$obligationId'
+    | '/compliance/calendar'
+    | '/compliance/rules'
     | '/contracts/$typeId'
     | '/help-desk/bounced-cheque'
     | '/help-desk/cyber-report'
@@ -458,15 +604,24 @@ export interface FileRouteTypes {
     | '/help-desk/tenant-protection'
     | '/help-desk/utility-dispute'
     | '/matters/$matterId'
+    | '/tasks/$taskId'
     | '/citizen/'
+    | '/companies/'
     | '/help-desk/'
+    | '/secp/'
+    | '/tax/'
     | '/api/auth/$'
     | '/api/cron/deadline-reminders'
+    | '/companies/$companyId/documents'
     | '/companies/$companyId/edit'
+    | '/companies/$companyId/employees'
+    | '/companies/$companyId/settings'
+    | '/companies/$companyId/employees/$employeeId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/accounts'
+    | '/ai-counsel'
     | '/billing'
     | '/business'
     | '/compliance'
@@ -484,7 +639,10 @@ export interface FileRouteTypes {
     | '/notices'
     | '/personal'
     | '/privacy'
+    | '/settings'
+    | '/share-changes'
     | '/signup'
+    | '/tasks'
     | '/tax-assistant'
     | '/terms'
     | '/admin/billing'
@@ -494,6 +652,9 @@ export interface FileRouteTypes {
     | '/citizen/lawyers'
     | '/companies/$companyId'
     | '/companies/new'
+    | '/compliance/$obligationId'
+    | '/compliance/calendar'
+    | '/compliance/rules'
     | '/contracts/$typeId'
     | '/help-desk/bounced-cheque'
     | '/help-desk/cyber-report'
@@ -504,15 +665,24 @@ export interface FileRouteTypes {
     | '/help-desk/tenant-protection'
     | '/help-desk/utility-dispute'
     | '/matters/$matterId'
+    | '/tasks/$taskId'
     | '/citizen'
+    | '/companies'
     | '/help-desk'
+    | '/secp'
+    | '/tax'
     | '/api/auth/$'
     | '/api/cron/deadline-reminders'
+    | '/companies/$companyId/documents'
     | '/companies/$companyId/edit'
+    | '/companies/$companyId/employees'
+    | '/companies/$companyId/settings'
+    | '/companies/$companyId/employees/$employeeId'
   id:
     | '__root__'
     | '/'
     | '/accounts'
+    | '/ai-counsel'
     | '/billing'
     | '/business'
     | '/compliance'
@@ -530,7 +700,10 @@ export interface FileRouteTypes {
     | '/notices'
     | '/personal'
     | '/privacy'
+    | '/settings'
+    | '/share-changes'
     | '/signup'
+    | '/tasks'
     | '/tax-assistant'
     | '/terms'
     | '/admin/billing'
@@ -540,6 +713,9 @@ export interface FileRouteTypes {
     | '/citizen/lawyers'
     | '/companies/$companyId'
     | '/companies/new'
+    | '/compliance_/$obligationId'
+    | '/compliance_/calendar'
+    | '/compliance_/rules'
     | '/contracts_/$typeId'
     | '/help-desk/bounced-cheque'
     | '/help-desk/cyber-report'
@@ -550,16 +726,25 @@ export interface FileRouteTypes {
     | '/help-desk/tenant-protection'
     | '/help-desk/utility-dispute'
     | '/matters/$matterId'
+    | '/tasks_/$taskId'
     | '/citizen/'
+    | '/companies/'
     | '/help-desk/'
+    | '/secp/'
+    | '/tax/'
     | '/api/auth/$'
     | '/api/cron/deadline-reminders'
+    | '/companies/$companyId_/documents'
     | '/companies/$companyId_/edit'
+    | '/companies/$companyId_/employees'
+    | '/companies/$companyId_/settings'
+    | '/companies/$companyId_/employees_/$employeeId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountsRoute: typeof AccountsRoute
+  AiCounselRoute: typeof AiCounselRoute
   BillingRoute: typeof BillingRoute
   BusinessRoute: typeof BusinessRoute
   ComplianceRoute: typeof ComplianceRoute
@@ -577,7 +762,10 @@ export interface RootRouteChildren {
   NoticesRoute: typeof NoticesRoute
   PersonalRoute: typeof PersonalRoute
   PrivacyRoute: typeof PrivacyRoute
+  SettingsRoute: typeof SettingsRoute
+  ShareChangesRoute: typeof ShareChangesRoute
   SignupRoute: typeof SignupRoute
+  TasksRoute: typeof TasksRoute
   TaxAssistantRoute: typeof TaxAssistantRoute
   TermsRoute: typeof TermsRoute
   AdminBillingRoute: typeof AdminBillingRoute
@@ -587,6 +775,9 @@ export interface RootRouteChildren {
   CitizenLawyersRoute: typeof CitizenLawyersRoute
   CompaniesCompanyIdRoute: typeof CompaniesCompanyIdRoute
   CompaniesNewRoute: typeof CompaniesNewRoute
+  ComplianceObligationIdRoute: typeof ComplianceObligationIdRoute
+  ComplianceCalendarRoute: typeof ComplianceCalendarRoute
+  ComplianceRulesRoute: typeof ComplianceRulesRoute
   ContractsTypeIdRoute: typeof ContractsTypeIdRoute
   HelpDeskBouncedChequeRoute: typeof HelpDeskBouncedChequeRoute
   HelpDeskCyberReportRoute: typeof HelpDeskCyberReportRoute
@@ -597,11 +788,19 @@ export interface RootRouteChildren {
   HelpDeskTenantProtectionRoute: typeof HelpDeskTenantProtectionRoute
   HelpDeskUtilityDisputeRoute: typeof HelpDeskUtilityDisputeRoute
   MattersMatterIdRoute: typeof MattersMatterIdRoute
+  TasksTaskIdRoute: typeof TasksTaskIdRoute
   CitizenIndexRoute: typeof CitizenIndexRoute
+  CompaniesIndexRoute: typeof CompaniesIndexRoute
   HelpDeskIndexRoute: typeof HelpDeskIndexRoute
+  SecpIndexRoute: typeof SecpIndexRoute
+  TaxIndexRoute: typeof TaxIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronDeadlineRemindersRoute: typeof ApiCronDeadlineRemindersRoute
+  CompaniesCompanyIdDocumentsRoute: typeof CompaniesCompanyIdDocumentsRoute
   CompaniesCompanyIdEditRoute: typeof CompaniesCompanyIdEditRoute
+  CompaniesCompanyIdEmployeesRoute: typeof CompaniesCompanyIdEmployeesRoute
+  CompaniesCompanyIdSettingsRoute: typeof CompaniesCompanyIdSettingsRoute
+  CompaniesCompanyIdEmployeesEmployeeIdRoute: typeof CompaniesCompanyIdEmployeesEmployeeIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -618,6 +817,13 @@ declare module '@tanstack/react-router' {
       path: '/accounts'
       fullPath: '/accounts'
       preLoaderRoute: typeof AccountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-counsel': {
+      id: '/ai-counsel'
+      path: '/ai-counsel'
+      fullPath: '/ai-counsel'
+      preLoaderRoute: typeof AiCounselRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/billing': {
@@ -739,11 +945,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/share-changes': {
+      id: '/share-changes'
+      path: '/share-changes'
+      fullPath: '/share-changes'
+      preLoaderRoute: typeof ShareChangesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tasks': {
+      id: '/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof TasksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tax-assistant': {
@@ -802,6 +1029,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CitizenLawyersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/companies/': {
+      id: '/companies/'
+      path: '/companies'
+      fullPath: '/companies/'
+      preLoaderRoute: typeof CompaniesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/companies/$companyId': {
       id: '/companies/$companyId'
       path: '/companies/$companyId'
@@ -814,6 +1048,27 @@ declare module '@tanstack/react-router' {
       path: '/companies/new'
       fullPath: '/companies/new'
       preLoaderRoute: typeof CompaniesNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compliance_/$obligationId': {
+      id: '/compliance_/$obligationId'
+      path: '/compliance/$obligationId'
+      fullPath: '/compliance/$obligationId'
+      preLoaderRoute: typeof ComplianceObligationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compliance_/calendar': {
+      id: '/compliance_/calendar'
+      path: '/compliance/calendar'
+      fullPath: '/compliance/calendar'
+      preLoaderRoute: typeof ComplianceCalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compliance_/rules': {
+      id: '/compliance_/rules'
+      path: '/compliance/rules'
+      fullPath: '/compliance/rules'
+      preLoaderRoute: typeof ComplianceRulesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contracts_/$typeId': {
@@ -893,6 +1148,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MattersMatterIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/secp/': {
+      id: '/secp/'
+      path: '/secp'
+      fullPath: '/secp/'
+      preLoaderRoute: typeof SecpIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tasks_/$taskId': {
+      id: '/tasks_/$taskId'
+      path: '/tasks/$taskId'
+      fullPath: '/tasks/$taskId'
+      preLoaderRoute: typeof TasksTaskIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tax/': {
+      id: '/tax/'
+      path: '/tax'
+      fullPath: '/tax/'
+      preLoaderRoute: typeof TaxIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -907,11 +1183,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronDeadlineRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/companies/$companyId_/documents': {
+      id: '/companies/$companyId_/documents'
+      path: '/companies/$companyId/documents'
+      fullPath: '/companies/$companyId/documents'
+      preLoaderRoute: typeof CompaniesCompanyIdDocumentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/companies/$companyId_/edit': {
       id: '/companies/$companyId_/edit'
       path: '/companies/$companyId/edit'
       fullPath: '/companies/$companyId/edit'
       preLoaderRoute: typeof CompaniesCompanyIdEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/companies/$companyId_/employees': {
+      id: '/companies/$companyId_/employees'
+      path: '/companies/$companyId/employees'
+      fullPath: '/companies/$companyId/employees'
+      preLoaderRoute: typeof CompaniesCompanyIdEmployeesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/companies/$companyId_/settings': {
+      id: '/companies/$companyId_/settings'
+      path: '/companies/$companyId/settings'
+      fullPath: '/companies/$companyId/settings'
+      preLoaderRoute: typeof CompaniesCompanyIdSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/companies/$companyId_/employees_/$employeeId': {
+      id: '/companies/$companyId_/employees_/$employeeId'
+      path: '/companies/$companyId/employees/$employeeId'
+      fullPath: '/companies/$companyId/employees/$employeeId'
+      preLoaderRoute: typeof CompaniesCompanyIdEmployeesEmployeeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -920,6 +1224,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountsRoute: AccountsRoute,
+  AiCounselRoute: AiCounselRoute,
   BillingRoute: BillingRoute,
   BusinessRoute: BusinessRoute,
   ComplianceRoute: ComplianceRoute,
@@ -937,7 +1242,10 @@ const rootRouteChildren: RootRouteChildren = {
   NoticesRoute: NoticesRoute,
   PersonalRoute: PersonalRoute,
   PrivacyRoute: PrivacyRoute,
+  SettingsRoute: SettingsRoute,
+  ShareChangesRoute: ShareChangesRoute,
   SignupRoute: SignupRoute,
+  TasksRoute: TasksRoute,
   TaxAssistantRoute: TaxAssistantRoute,
   TermsRoute: TermsRoute,
   AdminBillingRoute: AdminBillingRoute,
@@ -947,6 +1255,9 @@ const rootRouteChildren: RootRouteChildren = {
   CitizenLawyersRoute: CitizenLawyersRoute,
   CompaniesCompanyIdRoute: CompaniesCompanyIdRoute,
   CompaniesNewRoute: CompaniesNewRoute,
+  ComplianceObligationIdRoute: ComplianceObligationIdRoute,
+  ComplianceCalendarRoute: ComplianceCalendarRoute,
+  ComplianceRulesRoute: ComplianceRulesRoute,
   ContractsTypeIdRoute: ContractsTypeIdRoute,
   HelpDeskBouncedChequeRoute: HelpDeskBouncedChequeRoute,
   HelpDeskCyberReportRoute: HelpDeskCyberReportRoute,
@@ -957,11 +1268,20 @@ const rootRouteChildren: RootRouteChildren = {
   HelpDeskTenantProtectionRoute: HelpDeskTenantProtectionRoute,
   HelpDeskUtilityDisputeRoute: HelpDeskUtilityDisputeRoute,
   MattersMatterIdRoute: MattersMatterIdRoute,
+  TasksTaskIdRoute: TasksTaskIdRoute,
   CitizenIndexRoute: CitizenIndexRoute,
+  CompaniesIndexRoute: CompaniesIndexRoute,
   HelpDeskIndexRoute: HelpDeskIndexRoute,
+  SecpIndexRoute: SecpIndexRoute,
+  TaxIndexRoute: TaxIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronDeadlineRemindersRoute: ApiCronDeadlineRemindersRoute,
+  CompaniesCompanyIdDocumentsRoute: CompaniesCompanyIdDocumentsRoute,
   CompaniesCompanyIdEditRoute: CompaniesCompanyIdEditRoute,
+  CompaniesCompanyIdEmployeesRoute: CompaniesCompanyIdEmployeesRoute,
+  CompaniesCompanyIdSettingsRoute: CompaniesCompanyIdSettingsRoute,
+  CompaniesCompanyIdEmployeesEmployeeIdRoute:
+    CompaniesCompanyIdEmployeesEmployeeIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -2,16 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  AlertTriangle,
   Building2,
   CalendarClock,
-  CheckCircle2,
-  Circle,
-  Clock,
   FileSignature,
   FolderOpen,
   FolderUp,
   Landmark,
+  ListTodo,
   MessageCircle,
   Plus,
   Rocket,
@@ -20,16 +17,14 @@ import {
 } from "lucide-react";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { listWorkspacesFn, createWorkspaceFn, type Workspace } from "@/lib/legalpak/workspaces";
-import { listCompaniesFn, type Company } from "@/lib/legalpak/companies";
-import { listWorkspaceMattersFn, type MatterWithCompany } from "@/lib/legalpak/matters";
-import { listWorkspaceActivityFn, type WorkspaceAuditLogRow } from "@/lib/legalpak/audit";
-import { describeAuditRow, formatAuditTimestamp } from "@/components/activity-timeline";
-import { MATTER_TYPE_LABEL } from "@/lib/legalpak/workflow";
+import { createWorkspaceFn } from "@/lib/legalpak/workspaces";
+import { useCompanyContext } from "@/lib/legalpak/company-context";
+import { listWorkspaceTasksFn, isTaskOverdue, type TaskWithDetails } from "@/lib/legalpak/tasks";
+import { TaskList } from "@/components/tasks/task-list";
+import { CompanyHealthDashboard } from "@/components/compliance/company-health-dashboard";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
-import { formatDateLong } from "@/lib/legal/accounts";
-import { cn } from "@/lib/cn";
+import { EmptyState, SkeletonRows } from "@/components/company-health-widgets";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
@@ -45,31 +40,8 @@ function greeting(): string {
   return "Good evening";
 }
 
-type Urgency = "overdue" | "soon" | "upcoming" | "none" | "done";
-
-function urgencyOf(m: MatterWithCompany): Urgency {
-  if (m.status === "closed") return "done";
-  if (!m.due_date) return "none";
-  const today = new Date().toISOString().slice(0, 10);
-  const soonCutoff = new Date();
-  soonCutoff.setDate(soonCutoff.getDate() + 7);
-  const soon = soonCutoff.toISOString().slice(0, 10);
-  if (m.due_date < today) return "overdue";
-  if (m.due_date <= soon) return "soon";
-  return "upcoming";
-}
-
-/**
- * No SECP live-status feed is wired up — this is a plain read of whether the
- * company has an incorporation date on file, not a registrar lookup.
- */
-function companyStatus(c: Company): { label: string; tone: "success" | "warn" } {
-  return c.incorporation_date
-    ? { label: "Incorporated", tone: "success" }
-    : { label: "Registration in progress", tone: "warn" };
-}
-
 const QUICK_ACTIONS = [
+  { to: "/tasks", label: "New Task", icon: ListTodo },
   { to: "/contracts", label: "Create Contract", icon: Scale },
   { to: "/incorporation", label: "SECP Filing", icon: Rocket },
   { to: "/notices", label: "Legal Notice", icon: Send },
@@ -78,91 +50,66 @@ const QUICK_ACTIONS = [
 
 const TOOLS = [
   { to: "/companies/$companyId", label: "Company", icon: Building2, description: "Profile, matters & filings" },
-  { to: "/incorporation", label: "Incorporation", icon: Rocket, description: "Register a new company" },
-  { to: "/corporate-filings", label: "SECP", icon: FileSignature, description: "Form 21 & Form 45" },
+  { to: "/secp", label: "SECP", icon: FileSignature, description: "Incorporation, filings & share changes" },
   { to: "/contracts", label: "Contracts", icon: Scale, description: "Draft binding agreements" },
   { to: "/compliance", label: "Compliance", icon: CalendarClock, description: "Full deadline calendar" },
-  { to: "/tax-assistant", label: "Tax", icon: Landmark, description: "FBR income tax assistant" },
+  { to: "/tax", label: "Tax", icon: Landmark, description: "FBR income tax assistant" },
   { to: "/documents", label: "Documents", icon: FolderOpen, description: "Workspace document vault" },
-  { to: "/citizen", label: "LegalPak Intelligence", icon: MessageCircle, description: "AI legal chat & guidance" },
+  { to: "/ai-counsel", label: "AI Counsel", icon: MessageCircle, description: "Compliance guidance & chat" },
 ] as const;
 
 function DashboardPage() {
   const { user, isPending } = useCurrentUserState();
   if (isPending) return null;
   if (!user) return <RedirectToSignIn />;
-  return <DashboardBody displayName={user.displayName} />;
+  return <DashboardBody displayName={user.displayName} userId={user.id} />;
 }
 
-function DashboardBody({ displayName }: { displayName: string | null }) {
-  const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [matters, setMatters] = useState<MatterWithCompany[] | null>(null);
-  const [activity, setActivity] = useState<WorkspaceAuditLogRow[] | null>(null);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+function DashboardBody({ displayName, userId }: { displayName: string | null; userId: string }) {
+  const {
+    workspace,
+    companies,
+    loading: loadingCompanies,
+    selectedCompany,
+    setSelectedCompanyId,
+    refreshWorkspace,
+  } = useCompanyContext();
+  const [tasks, setTasks] = useState<TaskWithDetails[] | null>(null);
   const [workspaceName, setWorkspaceName] = useState("");
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
-  const [loadingCompanies, setLoadingCompanies] = useState(false);
-
-  async function refreshWorkspaces() {
-    const rows = await listWorkspacesFn();
-    setWorkspaces(rows);
-    return rows;
-  }
-
-  useEffect(() => {
-    refreshWorkspaces().catch(() => setWorkspaces([]));
-  }, []);
-
-  const workspace = workspaces?.[0] ?? null;
 
   useEffect(() => {
     if (!workspace) return;
-    setLoadingCompanies(true);
-    listCompaniesFn({ data: workspace.id })
-      .then((rows) => {
-        setCompanies(rows);
-        setSelectedCompanyId((prev) => prev ?? rows[0]?.id ?? null);
+    listWorkspaceTasksFn({ data: workspace.id })
+      .then(setTasks)
+      .catch(() => setTasks([]));
+  }, [workspace]);
+
+  // Dashboard always focuses on one company's health — default to the first
+  // one when the header switcher is set to "All companies" (selectedCompanyId
+  // === null) rather than rendering an aggregate view this page isn't built for.
+  const primaryCompany = selectedCompany ?? companies[0] ?? null;
+
+  // "My Tasks" favors tasks assigned to the signed-in user; when they haven't
+  // claimed any yet it falls back to the primary company's open tasks so the
+  // widget isn't empty on day one.
+  const myTasks = useMemo(() => {
+    if (!tasks) return [];
+    const open = tasks.filter((t) => t.status !== "done");
+    const mine = open.filter((t) => t.assignee_id === userId);
+    const pool = mine.length > 0 ? mine : open.filter((t) => t.company_id === primaryCompany?.id);
+    return [...pool]
+      .sort((a, b) => {
+        const overdueDiff = Number(isTaskOverdue(b)) - Number(isTaskOverdue(a));
+        if (overdueDiff !== 0) return overdueDiff;
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return a.due_date.localeCompare(b.due_date);
       })
-      .catch(() => toast.error("Could not load companies"))
-      .finally(() => setLoadingCompanies(false));
-    listWorkspaceMattersFn({ data: workspace.id })
-      .then(setMatters)
-      .catch(() => setMatters([]));
-    listWorkspaceActivityFn({ data: workspace.id })
-      .then(setActivity)
-      .catch(() => setActivity([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the workspace id changes
-  }, [workspace?.id]);
+      .slice(0, 4);
+  }, [tasks, userId, primaryCompany]);
 
-  const primaryCompany = companies.find((c) => c.id === selectedCompanyId) ?? companies[0] ?? null;
-
-  const companyMatters = useMemo(() => {
-    if (!matters || !primaryCompany) return [];
-    return matters.filter((m) => m.company_id === primaryCompany.id);
-  }, [matters, primaryCompany]);
-
-  const health = useMemo(() => {
-    const total = companyMatters.length;
-    const completed = companyMatters.filter((m) => m.status === "closed").length;
-    const overdue = companyMatters.filter((m) => urgencyOf(m) === "overdue").length;
-    const upcoming = companyMatters.filter((m) => {
-      const u = urgencyOf(m);
-      return u === "soon" || u === "upcoming";
-    }).length;
-    const score = total === 0 ? null : Math.round(((total - overdue) / total) * 100);
-    return { total, completed, overdue, upcoming, score };
-  }, [companyMatters]);
-
-  const attention = useMemo(() => {
-    const rank: Record<Urgency, number> = { overdue: 0, soon: 1, upcoming: 2, none: 3, done: 4 };
-    return [...companyMatters]
-      .filter((m) => m.status !== "closed")
-      .sort((a, b) => rank[urgencyOf(a)] - rank[urgencyOf(b)])
-      .slice(0, 3);
-  }, [companyMatters]);
-
-  if (workspaces === null) return null;
+  if (workspace === undefined) return null;
 
   if (!workspace) {
     async function createWorkspace(e: React.FormEvent) {
@@ -171,7 +118,7 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
       setCreatingWorkspace(true);
       try {
         await createWorkspaceFn({ data: workspaceName.trim() });
-        await refreshWorkspaces();
+        refreshWorkspace();
         toast.success("Workspace created");
       } catch {
         toast.error("Could not create workspace");
@@ -250,123 +197,30 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
         </div>
       ) : (
         <>
-          {/* Company selector */}
-          {companies.length > 1 && (
-            <div className="-mx-1 flex flex-wrap gap-2 px-1">
-              {companies.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setSelectedCompanyId(c.id)}
-                  className={cn(
-                    "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
-                    c.id === primaryCompany?.id
-                      ? "border-primary bg-primary text-primary-fg"
-                      : "border-border bg-surface text-muted hover:text-fg",
-                  )}
-                >
-                  {c.name}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Company summary */}
+          {/* Company Health — score, next actions, breakdown, recent activity */}
           {primaryCompany && (
-            <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-sm sm:p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium uppercase tracking-widest text-muted">Company summary</p>
-                  <h2 className="mt-1 truncate font-display text-2xl">{primaryCompany.name}</h2>
-                </div>
-                <Link
-                  to="/companies/$companyId"
-                  params={{ companyId: primaryCompany.id }}
-                  className="inline-flex min-h-9 shrink-0 items-center rounded-[var(--radius-sm)] border border-border px-3 text-sm font-medium text-muted hover:border-accent hover:text-fg"
-                >
-                  View company →
-                </Link>
-              </div>
-              <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
-                <SummaryField label="Company name" value={primaryCompany.name} />
-                <SummaryField label="CUIN" value={primaryCompany.cuin || "Not on file"} muted={!primaryCompany.cuin} />
-                <SummaryField label="NTN" value={primaryCompany.ntn || "Not on file"} muted={!primaryCompany.ntn} />
-                <div>
-                  <dt className="text-xs uppercase tracking-wide text-muted">Status</dt>
-                  <dd className="mt-0.5">
-                    <StatusPill {...companyStatus(primaryCompany)} />
-                  </dd>
-                </div>
-              </dl>
-            </section>
+            <CompanyHealthDashboard
+              workspaceId={workspace.id}
+              company={primaryCompany}
+              companies={companies}
+              onSelectCompany={setSelectedCompanyId}
+            />
           )}
 
-          {/* Compliance Health */}
+
+          {/* My Tasks */}
           <section>
-            <SectionHeading
-              title="Compliance Health"
-              action={{ to: "/compliance", label: "View full compliance calendar" }}
-            />
-            {health.total === 0 ? (
+            <SectionHeading title="My Tasks" action={{ to: "/tasks", label: "View all tasks" }} />
+            {tasks === null ? (
+              <SkeletonRows className="mt-3" count={2} />
+            ) : myTasks.length === 0 ? (
               <EmptyState
                 className="mt-3"
-                text="No compliance matters tracked for this company yet. Start one from the company page."
+                text="No open tasks yet — turn a filing or compliance item into a trackable workflow."
               />
             ) : (
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="flex items-center gap-4 rounded-[var(--radius-lg)] border border-border bg-surface p-4">
-                  <ScoreRing score={health.score ?? 0} />
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted">Score</p>
-                    <p className="font-display text-2xl">{health.score}</p>
-                  </div>
-                </div>
-                <StatTile label="Overdue" value={health.overdue} tone="danger" icon={AlertTriangle} />
-                <StatTile label="Upcoming" value={health.upcoming} tone="warn" icon={Clock} />
-                <StatTile label="Completed" value={health.completed} tone="success" icon={CheckCircle2} />
-              </div>
-            )}
-          </section>
-
-          {/* Attention Required */}
-          <section>
-            <SectionHeading title="Attention Required" />
-            {matters === null ? (
-              <SkeletonRows className="mt-3" count={2} />
-            ) : attention.length === 0 ? (
-              <EmptyState className="mt-3" text="Nothing urgent — everything open for this company is on track." />
-            ) : (
-              <div className="mt-3 space-y-2">
-                {attention.map((m) => {
-                  const u = urgencyOf(m);
-                  return (
-                    <Link
-                      key={m.id}
-                      to="/matters/$matterId"
-                      params={{ matterId: m.id }}
-                      className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 hover:border-accent"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{m.title}</p>
-                        <p className="text-xs text-muted">
-                          {m.company_name} · {MATTER_TYPE_LABEL[m.type]}
-                        </p>
-                      </div>
-                      <span
-                        className={cn(
-                          "shrink-0 rounded-full border px-3 py-1 text-xs font-medium",
-                          u === "overdue"
-                            ? "border-danger text-danger"
-                            : u === "soon"
-                              ? "border-warn text-warn"
-                              : "border-border text-muted",
-                        )}
-                      >
-                        {m.due_date ? formatDateLong(m.due_date) : "No due date"}
-                      </span>
-                    </Link>
-                  );
-                })}
+              <div className="mt-3">
+                <TaskList tasks={myTasks} showCompany={companies.length > 1} />
               </div>
             )}
           </section>
@@ -374,7 +228,7 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
           {/* Quick Actions */}
           <section>
             <SectionHeading title="Quick Actions" />
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {QUICK_ACTIONS.map((a) => {
                 const Icon = a.icon;
                 return (
@@ -445,30 +299,6 @@ function DashboardBody({ displayName }: { displayName: string | null }) {
           })}
         </div>
       </section>
-
-      {/* Recent Activity */}
-      <section>
-        <SectionHeading title="Recent Activity" />
-        {activity === null ? (
-          <SkeletonRows className="mt-3" count={4} />
-        ) : activity.length === 0 ? (
-          <EmptyState className="mt-3" text="No activity recorded yet — actions across your workspace will show up here." />
-        ) : (
-          <ol className="mt-3 space-y-3 border-l border-border pl-4">
-            {activity.map((row) => (
-              <li key={row.id} className="relative">
-                <span className="absolute -left-[21px] top-1.5 size-2 rounded-full bg-accent" />
-                <p className="text-sm font-medium">{describeAuditRow(row)}</p>
-                <p className="text-xs text-muted">
-                  {formatAuditTimestamp(row.created_at)}
-                  {row.company_name ? ` · ${row.company_name}` : ""}
-                  {row.user_name || row.user_email ? ` · ${row.user_name ?? row.user_email}` : ""}
-                </p>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
     </div>
   );
 }
@@ -488,93 +318,6 @@ function SectionHeading({
           {action.label}
         </Link>
       )}
-    </div>
-  );
-}
-
-function SummaryField({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-xs uppercase tracking-wide text-muted">{label}</dt>
-      <dd className={cn("mt-0.5 truncate text-sm font-medium", muted && "text-muted")}>{value}</dd>
-    </div>
-  );
-}
-
-function StatusPill({ label, tone }: { label: string; tone: "success" | "warn" }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium",
-        tone === "success" ? "border-success text-success" : "border-warn text-warn",
-      )}
-    >
-      <Circle className="size-1.5 fill-current" strokeWidth={0} />
-      {label}
-    </span>
-  );
-}
-
-function StatTile({
-  label,
-  value,
-  tone,
-  icon: Icon,
-}: {
-  label: string;
-  value: number;
-  tone: "danger" | "warn" | "success";
-  icon: typeof AlertTriangle;
-}) {
-  const toneClass = { danger: "text-danger", warn: "text-warn", success: "text-success" }[tone];
-  return (
-    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-4">
-      <Icon className={cn("size-4", toneClass)} strokeWidth={1.75} />
-      <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className={cn("mt-0.5 font-display text-2xl", toneClass)}>{value}</p>
-    </div>
-  );
-}
-
-function ScoreRing({ score }: { score: number }) {
-  const radius = 26;
-  const circumference = 2 * Math.PI * radius;
-  const clamped = Math.max(0, Math.min(100, score));
-  const offset = circumference - (clamped / 100) * circumference;
-  const tone = clamped >= 80 ? "var(--color-success)" : clamped >= 50 ? "var(--color-warn)" : "var(--color-danger)";
-  return (
-    <svg viewBox="0 0 64 64" className="size-14 shrink-0 -rotate-90" aria-hidden="true">
-      <circle cx="32" cy="32" r={radius} fill="none" stroke="var(--color-border)" strokeWidth="6" />
-      <circle
-        cx="32"
-        cy="32"
-        r={radius}
-        fill="none"
-        stroke={tone}
-        strokeWidth="6"
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        style={{ transition: "stroke-dashoffset 300ms ease" }}
-      />
-    </svg>
-  );
-}
-
-function EmptyState({ text, className }: { text: string; className?: string }) {
-  return (
-    <div className={cn("rounded-[var(--radius-md)] border border-dashed border-border bg-surface p-5", className)}>
-      <p className="text-sm text-muted">{text}</p>
-    </div>
-  );
-}
-
-function SkeletonRows({ count, className }: { count: number; className?: string }) {
-  return (
-    <div className={cn("space-y-2", className)} aria-hidden="true">
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="h-14 animate-pulse rounded-[var(--radius-md)] border border-border bg-surface" />
-      ))}
     </div>
   );
 }

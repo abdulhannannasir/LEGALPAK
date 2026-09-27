@@ -53,3 +53,51 @@ export async function requireMatterAccess(userId: string, matterId: string) {
   if (!rows[0]) throw new ForbiddenError();
   return rows[0];
 }
+
+export async function requireObligationAccess(userId: string, obligationId: string) {
+  const sql = await getSql();
+  const rows = await sql<{ id: string; workspace_id: string; company_id: string; status: string }>`
+    select o.id, o.workspace_id, o.company_id, o.status
+    from compliance_obligation o
+    join workspace_member wm on wm.workspace_id = o.workspace_id
+    where o.id = ${obligationId} and wm.user_id = ${userId}
+  `;
+  if (!rows[0]) throw new ForbiddenError();
+  return rows[0];
+}
+
+export async function requireDocumentAccess(userId: string, documentId: string) {
+  const sql = await getSql();
+  const rows = await sql<{ id: string; workspace_id: string; company_id: string }>`
+    select d.id, d.workspace_id, d.company_id
+    from document d
+    join workspace_member wm on wm.workspace_id = d.workspace_id
+    where d.id = ${documentId} and wm.user_id = ${userId}
+  `;
+  if (!rows[0]) throw new ForbiddenError();
+  return rows[0];
+}
+
+export async function requireTaskAccess(userId: string, taskId: string) {
+  const sql = await getSql();
+  const rows = await sql<{ id: string; workspace_id: string; company_id: string; status: string }>`
+    select t.id, t.workspace_id, t.company_id, t.status
+    from task t
+    join workspace_member wm on wm.workspace_id = t.workspace_id
+    where t.id = ${taskId} and wm.user_id = ${userId}
+  `;
+  if (!rows[0]) throw new ForbiddenError();
+  return rows[0];
+}
+
+export async function requireEmployeeAccess(userId: string, employeeId: string) {
+  const sql = await getSql();
+  const rows = await sql<{ id: string; workspace_id: string; company_id: string; full_name: string; status: string }>`
+    select e.id, e.workspace_id, e.company_id, e.full_name, e.status
+    from employee e
+    join workspace_member wm on wm.workspace_id = e.workspace_id
+    where e.id = ${employeeId} and wm.user_id = ${userId}
+  `;
+  if (!rows[0]) throw new ForbiddenError();
+  return rows[0];
+}

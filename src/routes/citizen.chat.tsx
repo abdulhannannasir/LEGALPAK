@@ -4,7 +4,15 @@ import { toast } from "sonner";
 import { AlertTriangle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/field";
-import { sendChatMessageFn, type ChatTopic } from "@/lib/citizen/chat";
+import { getChatHistoryFn, sendChatMessageFn, type ChatTopic } from "@/lib/citizen/chat";
+import {
+  clearStoredSession,
+  isInvalidSessionError,
+  loadStoredSession,
+  saveStoredSession,
+  withSessionRecovery,
+  type StoredChatSession,
+} from "@/lib/citizen/chat-session";
 
 export const Route = createFileRoute("/citizen/chat")({
   component: CitizenChatPage,
@@ -31,36 +39,41 @@ const TOPICS: { id: ChatTopic; label: string }[] = [
   { id: "general", label: "General" },
 ];
 
-function loadSession(): { sessionId: string; sessionToken: string } | null {
-  try {
-    const raw = window.localStorage.getItem("legalpak:citizen-chat-session");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveSession(sessionId: string, sessionToken: string) {
-  try {
-    window.localStorage.setItem(
-      "legalpak:citizen-chat-session",
-      JSON.stringify({ sessionId, sessionToken }),
-    );
-  } catch {
-    /* localStorage unavailable — chat still works, just won't persist across reloads */
-  }
-}
+const SESSION_KEY = "legalpak:citizen-chat-session";
 
 function CitizenChatPage() {
   const [messages, setMessages] = useState<LocalMessage[]>([]);
   const [input, setInput] = useState("");
   const [topic, setTopic] = useState<ChatTopic | undefined>(undefined);
   const [sending, setSending] = useState(false);
-  const session = useRef<{ sessionId: string; sessionToken: string } | null>(null);
+  const session = useRef<StoredChatSession | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    session.current = loadSession();
+    const stored = loadStoredSession(SESSION_KEY);
+    session.current = stored;
+    if (!stored) return;
+    let cancelled = false;
+    // The server keeps the conversation and the model keeps answering from it, so bring
+    // the transcript back — a blank page after a reload would hide what it is replying to.
+    getChatHistoryFn({ data: stored })
+      .then((rows) => {
+        if (cancelled) return;
+        // Leave it alone if the user already sent something while this was loading.
+        setMessages((prev) =>
+          prev.length > 0 ? prev : rows.map((r) => ({ role: r.sender, content: r.content })),
+        );
+      })
+      .catch((err) => {
+        // A session the server no longer knows is dead weight; forget it so the next send starts fresh.
+        if (isInvalidSessionError(err) && session.current === stored) {
+          clearStoredSession(SESSION_KEY);
+          session.current = null;
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -74,16 +87,13 @@ function CitizenChatPage() {
     setMessages((m) => [...m, { role: "user", content: message }]);
     setSending(true);
     try {
-      const result = await sendChatMessageFn({
-        data: {
-          sessionId: session.current?.sessionId,
-          sessionToken: session.current?.sessionToken,
-          message,
-          topic,
-        },
-      });
+      const result = await withSessionRecovery(SESSION_KEY, session, (s) =>
+        sendChatMessageFn({
+          data: { sessionId: s?.sessionId, sessionToken: s?.sessionToken, message, topic },
+        }),
+      );
       session.current = { sessionId: result.sessionId, sessionToken: result.sessionToken };
-      saveSession(result.sessionId, result.sessionToken);
+      saveStoredSession(SESSION_KEY, session.current);
       setMessages((m) => [...m, { role: "assistant", content: result.reply }]);
     } catch {
       toast.error("Could not reach the legal advisor — try again in a moment");

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Compass, Rocket, ShieldCheck, Sparkles, type LucideIcon } from "lucide-react";
+import { ArrowRight, CalendarClock, Rocket, ShieldCheck, Sparkles, type LucideIcon } from "lucide-react";
 
 const PILLARS: { key: string; title: string; body: string; icon: LucideIcon; to: string }[] = [
   {
@@ -12,9 +12,9 @@ const PILLARS: { key: string; title: string; body: string; icon: LucideIcon; to:
   {
     key: "RUN",
     title: "Run",
-    body: "Manage contracts, filings, directors and compliance.",
-    icon: Compass,
-    to: "/business",
+    body: "Track deadlines, manage filings, directors and share changes.",
+    icon: CalendarClock,
+    to: "/compliance",
   },
   {
     key: "PROTECT",
@@ -24,11 +24,11 @@ const PILLARS: { key: string; title: string; body: string; icon: LucideIcon; to:
     to: "/contracts",
   },
   {
-    key: "UNDERSTAND",
-    title: "Understand",
-    body: "Get preliminary legal guidance in English, Urdu and Roman Urdu.",
+    key: "ASK",
+    title: "Ask",
+    body: "Get AI Counsel on compliance, grounded in the Companies Act 2017.",
     icon: Sparkles,
-    to: "/citizen",
+    to: "/ai-counsel",
   },
 ];
 

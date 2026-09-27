@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   Briefcase,
   Building2,
+  FilePlus2,
   Home,
   Landmark,
   Search,
@@ -19,6 +20,11 @@ import {
   searchContractTypes,
   type ContractCategory,
 } from "@/lib/legal/contracts";
+import { STATUS_LABEL } from "@/lib/legalpak/workflow";
+import { useCompanyContext } from "@/lib/legalpak/company-context";
+import { listWorkspaceMattersFn, type MatterWithCompany } from "@/lib/legalpak/matters";
+import { formatDateLong } from "@/lib/legal/accounts";
+import { cn } from "@/lib/cn";
 
 export const Route = createFileRoute("/contracts")({
   component: () => (
@@ -48,7 +54,182 @@ const CATEGORY_ICON: Record<ContractCategory, typeof Briefcase> = {
   notices: Send,
 };
 
+type ContractTab = "templates" | "create" | "review";
+
 function ContractLibraryPage() {
+  const { workspace, selectedCompanyId, selectedCompany } = useCompanyContext();
+  const [tab, setTab] = useState<ContractTab>("templates");
+  const [matters, setMatters] = useState<MatterWithCompany[] | null>(null);
+  const [scopeToCompany, setScopeToCompany] = useState(true);
+
+  useEffect(() => {
+    setScopeToCompany(true);
+  }, [selectedCompanyId]);
+
+  useEffect(() => {
+    if (!workspace) return;
+    listWorkspaceMattersFn({ data: workspace.id })
+      .then(setMatters)
+      .catch(() => setMatters([]));
+  }, [workspace]);
+
+  const contractMatters = useMemo(() => {
+    const all = (matters ?? []).filter((m) => m.type === "CONTRACT");
+    if (scopeToCompany && selectedCompanyId) return all.filter((m) => m.company_id === selectedCompanyId);
+    return all;
+  }, [matters, scopeToCompany, selectedCompanyId]);
+  const drafts = useMemo(() => contractMatters.filter((m) => m.status === "draft"), [contractMatters]);
+  const inReview = useMemo(() => contractMatters.filter((m) => m.status === "review"), [contractMatters]);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-widest text-muted">
+          Contract Act 1872
+        </p>
+        <h1 className="font-display text-3xl">Contracts</h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted">
+          {CONTRACT_TYPES.length} agreement, authority and notice types — each with a smart
+          questionnaire, live risk flags, clause-by-clause explanations, and a
+          Draft → Review → Final → Signed workflow once you save it to your workspace.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2">
+          {(
+            [
+              { id: "templates", label: "Templates" },
+              { id: "create", label: "Create" },
+              { id: "review", label: "Review" },
+            ] as const
+          ).map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={`rounded-full border px-4 py-1.5 text-sm font-medium ${
+                tab === t.id ? "border-primary bg-primary text-primary-fg" : "border-border text-muted"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {tab !== "templates" && selectedCompany && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setScopeToCompany(true)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium",
+                scopeToCompany ? "border-primary bg-primary text-primary-fg" : "border-border text-muted",
+              )}
+            >
+              {selectedCompany.name}
+            </button>
+            <button
+              type="button"
+              onClick={() => setScopeToCompany(false)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium",
+                !scopeToCompany ? "border-primary bg-primary text-primary-fg" : "border-border text-muted",
+              )}
+            >
+              All companies
+            </button>
+          </div>
+        )}
+      </div>
+
+      {tab === "templates" && <TemplatesTab />}
+      {tab === "create" && <CreateTab drafts={drafts} onBrowse={() => setTab("templates")} />}
+      {tab === "review" && <ReviewTab items={inReview} />}
+    </div>
+  );
+}
+
+function CreateTab({ drafts, onBrowse }: { drafts: MatterWithCompany[]; onBrowse: () => void }) {
+  return (
+    <div className="space-y-6">
+      <button
+        type="button"
+        onClick={onBrowse}
+        className="flex w-full items-center gap-3 rounded-[var(--radius-lg)] border border-dashed border-accent bg-surface p-5 text-left hover:bg-bg sm:max-w-md"
+      >
+        <FilePlus2 className="size-5 shrink-0 text-accent" strokeWidth={1.75} />
+        <div>
+          <p className="font-display text-lg">Start a new contract</p>
+          <p className="text-sm text-muted">Browse the template library to pick a type and begin drafting.</p>
+        </div>
+      </button>
+
+      <section>
+        <h2 className="font-display text-xl">Continue a draft</h2>
+        {drafts.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">No contract drafts in progress yet.</p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {drafts.map((m) => (
+              <Link
+                key={m.id}
+                to="/matters/$matterId"
+                params={{ matterId: m.id }}
+                className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 hover:border-accent"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{m.title}</p>
+                  <p className="text-xs text-muted">{m.company_name}</p>
+                </div>
+                <span className="shrink-0 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted">
+                  {STATUS_LABEL[m.status]}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function ReviewTab({ items }: { items: MatterWithCompany[] }) {
+  if (items.length === 0) {
+    return (
+      <p className="rounded-[var(--radius-lg)] border border-dashed border-border p-8 text-center text-sm text-muted">
+        Nothing is awaiting review — contracts move here once you send them for review from their
+        matter page.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {items.map((m) => (
+        <Link
+          key={m.id}
+          to="/matters/$matterId"
+          params={{ matterId: m.id }}
+          className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 hover:border-accent"
+        >
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{m.title}</p>
+            <p className="text-xs text-muted">{m.company_name}</p>
+          </div>
+          <span
+            className={cn(
+              "shrink-0 rounded-full border px-3 py-1 text-xs font-medium",
+              "border-warn text-warn",
+            )}
+          >
+            {m.due_date ? formatDateLong(m.due_date) : STATUS_LABEL[m.status]}
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function TemplatesTab() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<ContractCategory | "all">("all");
 
@@ -69,18 +250,6 @@ function ContractLibraryPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-widest text-muted">
-          Contract Act 1872
-        </p>
-        <h1 className="font-display text-3xl">Contract library</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted">
-          {CONTRACT_TYPES.length} agreement, authority and notice types — each with a smart
-          questionnaire, live risk flags, clause-by-clause explanations, and a
-          Draft → Review → Final → Signed workflow once you save it to your workspace.
-        </p>
-      </div>
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search

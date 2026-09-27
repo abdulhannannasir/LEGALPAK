@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
-import { requireWorkspaceAccess } from "./access";
+import { ForbiddenError, requireWorkspaceAccess } from "./access";
 import { createId } from "./id";
 import { logAudit } from "./audit";
 
@@ -28,6 +28,32 @@ const SUBSCRIPTION_COLUMNS = `
   created_at::text as created_at
 `;
 
+/** Whether a workspace's latest subscription row currently grants access — the one definition every gate uses. */
+export function isSubscriptionActive(latest: Pick<Subscription, "status" | "period_end"> | null): boolean {
+  return latest?.status === "active" && (!latest.period_end || new Date(latest.period_end) > new Date());
+}
+
+/**
+ * Server-side counterpart of the client's RequireSubscription gate, for server
+ * functions that must not rely on a React component to keep non-subscribers
+ * out. Passes when ANY workspace the user belongs to has a currently active
+ * subscription; call only from inside a `createServerFn().handler()`.
+ */
+export async function requireActiveSubscription(userId: string): Promise<void> {
+  const sql = await getSql();
+  const rows = await sql.query<Pick<Subscription, "status" | "period_end">>(
+    `select distinct on (s.workspace_id) s.status, s.period_end::text as period_end
+     from subscription s
+     join workspace_member wm on wm.workspace_id = s.workspace_id
+     where wm.user_id = $1
+     order by s.workspace_id, s.created_at desc`,
+    [userId],
+  );
+  if (!rows.some(isSubscriptionActive)) {
+    throw new ForbiddenError("An active Corporate Suite subscription is required");
+  }
+}
+
 /** The latest subscription row for a workspace, plus whether it's currently active. */
 export const getWorkspaceSubscriptionFn = createServerFn({ method: "GET" })
   .validator((workspaceId: string) => z.string().min(1).parse(workspaceId))
@@ -41,10 +67,7 @@ export const getWorkspaceSubscriptionFn = createServerFn({ method: "GET" })
       [workspaceId],
     );
     const latest = rows[0] ?? null;
-    const isActive =
-      latest?.status === "active" &&
-      (!latest.period_end || new Date(latest.period_end) > new Date());
-    return { latest, isActive };
+    return { latest, isActive: isSubscriptionActive(latest) };
   });
 
 const submitPaymentSchema = z.object({

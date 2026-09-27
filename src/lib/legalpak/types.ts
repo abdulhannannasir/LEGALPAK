@@ -12,6 +12,41 @@ import { MATTER_TYPES, type MatterStatus } from "./workflow";
 
 export type Workspace = { id: string; name: string; role: string };
 
+/**
+ * Legal vehicles SECP actually registers (smc/private/public/listed/s42) plus
+ * the non-SECP business forms LegalPak still tracks for a company workspace
+ * (llp/partnership/sole_proprietor) — kept distinct from `s42` etc. rather
+ * than relabeled, since the SECP-facing tools (Form A, Form 9, Form 3…) only
+ * apply to the SECP-registered types.
+ */
+export const COMPANY_TYPES = [
+  "private",
+  "smc",
+  "public",
+  "listed",
+  "s42",
+  "llp",
+  "partnership",
+  "sole_proprietor",
+  "other",
+] as const;
+export type CompanyType = (typeof COMPANY_TYPES)[number];
+
+export const COMPANY_TYPE_LABEL: Record<CompanyType, string> = {
+  private: "Private Limited",
+  smc: "Single Member Company",
+  public: "Public Limited (unlisted)",
+  listed: "Public Limited (listed)",
+  s42: "Section 42 / NPO",
+  llp: "LLP",
+  partnership: "Partnership",
+  sole_proprietor: "Sole Proprietorship",
+  other: "Other",
+};
+
+export const COMPANY_STATUSES = ["active", "archived"] as const;
+export type CompanyStatus = (typeof COMPANY_STATUSES)[number];
+
 export type Company = {
   id: string;
   workspace_id: string;
@@ -27,6 +62,12 @@ export type Company = {
   agm_date: string | null;
   public_linked: boolean;
   has_subsidiary: boolean;
+  status: CompanyStatus;
+  registered_address: string | null;
+  business_activity: string | null;
+  province: string | null;
+  city: string | null;
+  archived_at: string | null;
 };
 
 export const companyInputSchema = z.object({
@@ -43,6 +84,10 @@ export const companyInputSchema = z.object({
   agmDate: z.string().optional(),
   publicLinked: z.boolean().optional(),
   hasSubsidiary: z.boolean().optional(),
+  registeredAddress: z.string().trim().optional(),
+  businessActivity: z.string().trim().optional(),
+  province: z.string().trim().optional(),
+  city: z.string().trim().optional(),
 });
 export type CompanyInput = z.infer<typeof companyInputSchema>;
 
