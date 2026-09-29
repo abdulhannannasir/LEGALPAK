@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
-import { addDaysISO, addMonthsISO, diffDaysISO, todayISO } from "@/lib/legal/date";
+import { addDaysISO, addMonthsFromAnchorISO, dayOfMonthISO, diffDaysISO, todayISO } from "@/lib/legal/date";
 import { createId } from "./id";
 import { requireCompanyAccess, requireObligationAccess, requireWorkspaceAccess } from "./access";
 import { logAudit, type AuditLogRow } from "./audit";
@@ -54,6 +54,8 @@ export type ComplianceObligation = {
   recurring: boolean;
   recurrence_rule: string | null;
   period_key: string | null;
+  /** The day-of-month a MANUALLY-recurring obligation is meant to keep recurring on, set from its first due date and carried forward by every spawned successor — see spawnNextOccurrence. Null for rule-generated obligations, which recompute their due date fresh each time instead. */
+  recurrence_anchor_day: number | null;
   required_documents: string[];
   notes: string;
   completed_at: string | null;
@@ -68,7 +70,7 @@ export type ComplianceObligationWithCompany = ComplianceObligation & { company_n
 const OBLIGATION_COLUMNS = `
   id, workspace_id, company_id, rule_id, title, description, category, authority,
   due_date::text as due_date, status, priority, recurring, recurrence_rule, period_key,
-  required_documents, notes, completed_at::text as completed_at, completed_by,
+  recurrence_anchor_day, required_documents, notes, completed_at::text as completed_at, completed_by,
   created_by, created_at::text as created_at, updated_at::text as updated_at
 `;
 
@@ -78,7 +80,7 @@ const OBLIGATION_COLUMNS = `
 const OBLIGATION_COLUMNS_O = `
   o.id, o.workspace_id, o.company_id, o.rule_id, o.title, o.description, o.category, o.authority,
   o.due_date::text as due_date, o.status, o.priority, o.recurring, o.recurrence_rule, o.period_key,
-  o.required_documents, o.notes, o.completed_at::text as completed_at, o.completed_by,
+  o.recurrence_anchor_day, o.required_documents, o.notes, o.completed_at::text as completed_at, o.completed_by,
   o.created_by, o.created_at::text as created_at, o.updated_at::text as updated_at
 `;
 
@@ -162,11 +164,14 @@ export const createComplianceObligationFn = createServerFn({ method: "POST" })
     const company = await requireCompanyAccess(context.userId, input.companyId);
     const sql = await getSql();
     const id = createId("cobl");
+    // Captured now, from whatever due date the obligation starts with, so a later manual
+    // completion recurs on this same day-of-month instead of drifting — see recurrence_anchor_day.
+    const anchorDay = input.dueDate ? dayOfMonthISO(input.dueDate) : null;
     const rows = await sql.query<ComplianceObligation>(
       `insert into compliance_obligation (
         id, workspace_id, company_id, title, description, category, authority,
-        due_date, priority, recurring, recurrence_rule, required_documents, notes, created_by
-      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14)
+        due_date, priority, recurring, recurrence_rule, recurrence_anchor_day, required_documents, notes, created_by
+      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14,$15)
       returning ${OBLIGATION_COLUMNS}`,
       [
         id,
@@ -180,6 +185,7 @@ export const createComplianceObligationFn = createServerFn({ method: "POST" })
         input.priority ?? "medium",
         input.recurring ?? false,
         input.recurrenceRule ?? null,
+        anchorDay,
         JSON.stringify(input.requiredDocuments ?? []),
         input.notes ?? "",
         context.userId,
@@ -267,9 +273,19 @@ export const changeObligationDeadlineFn = createServerFn({ method: "POST" })
       `select due_date::text as due_date from compliance_obligation where id = $1`,
       [input.obligationId],
     );
+    // A human retargeting the deadline resets recurrence_anchor_day too — otherwise the NEXT
+    // manual-recurrence spawn would silently revert to whatever day the obligation started on,
+    // overriding this correction. Left unchanged when the date is being cleared (null): nothing to
+    // derive a day from, and there's no recurrence to anchor until it has a due date again.
+    const anchorDay = input.dueDate ? dayOfMonthISO(input.dueDate) : undefined;
     const rows = await sql.query<ComplianceObligation>(
-      `update compliance_obligation set due_date = $2, updated_at = now() where id = $1 returning ${OBLIGATION_COLUMNS}`,
-      [input.obligationId, input.dueDate || null],
+      `update compliance_obligation set
+        due_date = $2,
+        recurrence_anchor_day = coalesce($3, recurrence_anchor_day),
+        updated_at = now()
+      where id = $1
+      returning ${OBLIGATION_COLUMNS}`,
+      [input.obligationId, input.dueDate || null, anchorDay ?? null],
     );
     const obligation = rows[0];
     logAudit({
@@ -301,16 +317,33 @@ export const changeObligationStatusFn = createServerFn({ method: "POST" })
     if (!before) throw new Error("Obligation not found");
 
     const completing = input.status === "completed";
+    // When completing, only the request that actually flips status AWAY from 'completed' may
+    // proceed — Postgres locks the row for this UPDATE's duration, so of two concurrent
+    // completions (or a plain retried request) only one can match `status is distinct from
+    // 'completed'` and win; the other affects zero rows. That closes the double-spawn: without
+    // this guard, every completion call unconditionally re-ran spawnNextOccurrence below, so two
+    // racing requests — or the same request retried — each spawned their own successor
+    // obligation, and manually-created ones have no rule_id for the unique index to catch.
     const rows = await sql.query<ComplianceObligation>(
       `update compliance_obligation set
         status = $2,
         completed_at = case when $3 then now() else null end,
         completed_by = case when $3 then $4 else null end,
         updated_at = now()
-      where id = $1
+      where id = $1 and (not $3 or status is distinct from 'completed')
       returning ${OBLIGATION_COLUMNS}`,
       [input.obligationId, input.status, completing, context.userId],
     );
+    if (!rows[0]) {
+      // Lost the race or this is a repeat of an already-applied completion: nothing to do, and the
+      // obligation is already whatever the winning request left it as — return that fresh row
+      // rather than the (possibly now-stale) `before` snapshot.
+      const currentRows = await sql.query<ComplianceObligation>(
+        `select ${OBLIGATION_COLUMNS} from compliance_obligation where id = $1`,
+        [input.obligationId],
+      );
+      return currentRows[0] ?? before;
+    }
     const obligation = rows[0];
     logAudit({
       workspaceId: obligation.workspace_id,
@@ -373,6 +406,7 @@ async function spawnNextOccurrence(completed: ComplianceObligation, userId: stri
   let nextDue: string | null;
   let periodKey: string | null;
   let recurrenceRule: string;
+  let anchorDay: number | null = null;
   if (completed.rule_id) {
     // Rule-generated: recompute fresh from the rule's own CURRENT recurrence config and the
     // company's current data — exactly what evaluateForCompany would do — rather than chaining
@@ -408,10 +442,16 @@ async function spawnNextOccurrence(completed: ComplianceObligation, userId: stri
     recurrenceRule = rule.recurrence.frequency;
   } else {
     // Manually created: no rule to recompute from, so advance the stored due date by a plain
-    // calendar-month step, clamped only when the target month is too short — the day the
-    // obligation was set to recur on, preserved as literally as possible.
+    // calendar-month step. Clamps to recurrence_anchor_day — the day-of-month this obligation was
+    // ORIGINALLY set to recur on — rather than to this occurrence's own due date, which a prior
+    // short-month clamp may have already shrunk (Jan 31 -> Feb 28): clamping off that already-
+    // clamped date would produce Mar 28 instead of Mar 31. Obligations from before this column
+    // existed fall back to their current due date's day, same as the old behavior, but then carry
+    // that day forward correctly from here on.
     const months = completed.recurrence_rule === "annual" ? 12 : completed.recurrence_rule === "quarterly" ? 3 : 1;
-    nextDue = addMonthsISO(completed.due_date, months);
+    anchorDay = completed.recurrence_anchor_day ?? dayOfMonthISO(completed.due_date);
+    if (!anchorDay) return;
+    nextDue = addMonthsFromAnchorISO(completed.due_date, months, anchorDay);
     if (!nextDue) return;
     periodKey = periodKeyForDue(completed.recurrence_rule, nextDue);
     recurrenceRule = completed.recurrence_rule;
@@ -422,8 +462,9 @@ async function spawnNextOccurrence(completed: ComplianceObligation, userId: stri
     await sql.query(
       `insert into compliance_obligation (
         id, workspace_id, company_id, rule_id, title, description, category, authority,
-        due_date, priority, recurring, recurrence_rule, period_key, required_documents, created_by
-      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,$15)`,
+        due_date, priority, recurring, recurrence_rule, period_key, recurrence_anchor_day,
+        required_documents, created_by
+      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb,$16)`,
       [
         id,
         completed.workspace_id,
@@ -438,6 +479,7 @@ async function spawnNextOccurrence(completed: ComplianceObligation, userId: stri
         true,
         recurrenceRule,
         periodKey,
+        anchorDay,
         JSON.stringify(completed.required_documents),
         userId,
       ],
