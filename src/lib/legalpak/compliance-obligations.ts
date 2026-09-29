@@ -56,6 +56,8 @@ export type ComplianceObligation = {
   period_key: string | null;
   /** The day-of-month a MANUALLY-recurring obligation is meant to keep recurring on, set from its first due date and carried forward by every spawned successor — see spawnNextOccurrence. Null for rule-generated obligations, which recompute their due date fresh each time instead. */
   recurrence_anchor_day: number | null;
+  /** The obligation this one was spawned FROM by a completion, if any — at most one successor per predecessor (unique index), the idempotency key that lets spawnNextOccurrence be retried safely. */
+  spawned_from_id: string | null;
   required_documents: string[];
   notes: string;
   completed_at: string | null;
@@ -70,7 +72,8 @@ export type ComplianceObligationWithCompany = ComplianceObligation & { company_n
 const OBLIGATION_COLUMNS = `
   id, workspace_id, company_id, rule_id, title, description, category, authority,
   due_date::text as due_date, status, priority, recurring, recurrence_rule, period_key,
-  recurrence_anchor_day, required_documents, notes, completed_at::text as completed_at, completed_by,
+  recurrence_anchor_day, spawned_from_id, required_documents, notes,
+  completed_at::text as completed_at, completed_by,
   created_by, created_at::text as created_at, updated_at::text as updated_at
 `;
 
@@ -80,7 +83,8 @@ const OBLIGATION_COLUMNS = `
 const OBLIGATION_COLUMNS_O = `
   o.id, o.workspace_id, o.company_id, o.rule_id, o.title, o.description, o.category, o.authority,
   o.due_date::text as due_date, o.status, o.priority, o.recurring, o.recurrence_rule, o.period_key,
-  o.recurrence_anchor_day, o.required_documents, o.notes, o.completed_at::text as completed_at, o.completed_by,
+  o.recurrence_anchor_day, o.spawned_from_id, o.required_documents, o.notes,
+  o.completed_at::text as completed_at, o.completed_by,
   o.created_by, o.created_at::text as created_at, o.updated_at::text as updated_at
 `;
 
@@ -317,13 +321,18 @@ export const changeObligationStatusFn = createServerFn({ method: "POST" })
     if (!before) throw new Error("Obligation not found");
 
     const completing = input.status === "completed";
-    // When completing, only the request that actually flips status AWAY from 'completed' may
-    // proceed — Postgres locks the row for this UPDATE's duration, so of two concurrent
+    // When completing, only the request that actually flips status AWAY from 'completed' logs a
+    // fresh completion — Postgres locks the row for this UPDATE's duration, so of two concurrent
     // completions (or a plain retried request) only one can match `status is distinct from
-    // 'completed'` and win; the other affects zero rows. That closes the double-spawn: without
-    // this guard, every completion call unconditionally re-ran spawnNextOccurrence below, so two
-    // racing requests — or the same request retried — each spawned their own successor
-    // obligation, and manually-created ones have no rule_id for the unique index to catch.
+    // 'completed'` and win; the other affects zero rows. That's what keeps a race or a retry from
+    // logging OBLIGATION_COMPLETED twice. It must NOT be what gates spawnNextOccurrence below,
+    // though: if the winning request's own spawn attempt fails AFTER its status update already
+    // committed (e.g. a transient DB error), the obligation is left completed with no successor,
+    // and a manually-created one has no rule-based re-scan to ever recreate it — a retried
+    // completion has to be able to try the spawn again, which only works because
+    // spawned_from_id's unique index makes spawnNextOccurrence idempotent per predecessor: a
+    // repeat attempt for an already-spawned obligation hits that constraint and is a no-op, so
+    // trying again here is always safe.
     const rows = await sql.query<ComplianceObligation>(
       `update compliance_obligation set
         status = $2,
@@ -334,26 +343,31 @@ export const changeObligationStatusFn = createServerFn({ method: "POST" })
       returning ${OBLIGATION_COLUMNS}`,
       [input.obligationId, input.status, completing, context.userId],
     );
-    if (!rows[0]) {
-      // Lost the race or this is a repeat of an already-applied completion: nothing to do, and the
-      // obligation is already whatever the winning request left it as — return that fresh row
-      // rather than the (possibly now-stale) `before` snapshot.
+
+    let obligation: ComplianceObligation;
+    if (rows[0]) {
+      obligation = rows[0];
+      logAudit({
+        workspaceId: obligation.workspace_id,
+        companyId: obligation.company_id,
+        userId: context.userId,
+        action: completing ? "OBLIGATION_COMPLETED" : "OBLIGATION_STATUS_CHANGED",
+        entityType: "compliance_obligation",
+        entityId: obligation.id,
+        metadata: { from: before.status, to: obligation.status },
+      }).catch(() => {});
+    } else {
+      // Lost the race, or this is a retry of an already-applied completion — either way this call
+      // isn't the one that flipped the status, so no fresh OBLIGATION_COMPLETED log and no
+      // (possibly now-stale) `before` snapshot returned. `completing` is guaranteed true here: the
+      // WHERE clause above only excludes a row when $3 is true, so a non-completing status change
+      // always matches and returns a row.
       const currentRows = await sql.query<ComplianceObligation>(
         `select ${OBLIGATION_COLUMNS} from compliance_obligation where id = $1`,
         [input.obligationId],
       );
-      return currentRows[0] ?? before;
+      obligation = currentRows[0] ?? before;
     }
-    const obligation = rows[0];
-    logAudit({
-      workspaceId: obligation.workspace_id,
-      companyId: obligation.company_id,
-      userId: context.userId,
-      action: completing ? "OBLIGATION_COMPLETED" : "OBLIGATION_STATUS_CHANGED",
-      entityType: "compliance_obligation",
-      entityId: obligation.id,
-      metadata: { from: before.status, to: obligation.status },
-    }).catch(() => {});
 
     if (completing && obligation.recurring && obligation.due_date && obligation.recurrence_rule) {
       await spawnNextOccurrence(obligation, context.userId);
@@ -463,8 +477,8 @@ async function spawnNextOccurrence(completed: ComplianceObligation, userId: stri
       `insert into compliance_obligation (
         id, workspace_id, company_id, rule_id, title, description, category, authority,
         due_date, priority, recurring, recurrence_rule, period_key, recurrence_anchor_day,
-        required_documents, created_by
-      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb,$16)`,
+        spawned_from_id, required_documents, created_by
+      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,$17)`,
       [
         id,
         completed.workspace_id,
@@ -480,16 +494,19 @@ async function spawnNextOccurrence(completed: ComplianceObligation, userId: stri
         recurrenceRule,
         periodKey,
         anchorDay,
+        completed.id,
         JSON.stringify(completed.required_documents),
         userId,
       ],
     );
   } catch (e) {
-    // compliance_obligation_rule_period_idx already rejected this exact (company, rule, period):
-    // something else (evaluateForCompany's own re-scan, or another completion) already created the
-    // next occurrence, so the goal here — it exists — is already met. This must not fail the status
-    // change that triggered this spawn: that update already committed in its own statement, and
-    // completing an obligation should never report failure over its own successful completion.
+    // Either compliance_obligation_rule_period_idx (rule-generated: same company/rule/period) or
+    // compliance_obligation_spawned_from_idx (any obligation: a successor already exists for THIS
+    // predecessor, e.g. a retry of the completion that spawned it) already rejected this insert —
+    // something else already created the next occurrence, so the goal here — it exists — is already
+    // met. This must not fail the status change that triggered this spawn: that update already
+    // committed in its own statement, and completing an obligation should never report failure over
+    // its own successful completion.
     if (e instanceof Error && "code" in e && e.code === "23505") return;
     throw e;
   }
