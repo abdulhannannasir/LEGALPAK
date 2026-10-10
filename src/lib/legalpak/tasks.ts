@@ -217,17 +217,34 @@ export const createTaskFn = createServerFn({ method: "POST" })
 
     const sql = await getSql();
     const id = createId("task");
+    const steps = input.steps ?? [];
+    const stepIds = steps.map(() => createId("tstep"));
+    const stepPositions = steps.map((_, i) => i);
+    // The task and its checklist steps are inserted as ONE statement (a data-modifying CTE, `new_steps`
+    // executed for its side effect even though only `new_task` is selected from — Postgres always
+    // runs every WITH sub-statement to completion) so a step insert failing can't leave a task with a
+    // missing or partial checklist: the whole statement — task included — rolls back together, and a
+    // retry creates a fresh, complete task rather than piling up alongside an orphaned partial one.
+    // `unnest` over the (possibly empty) steps arrays contributes zero rows when there are none.
     const rows = await sql.query<Task>(
-      `insert into task (
-        id, workspace_id, company_id, obligation_id, document_id,
-        title, description, priority, due_date, assignee_id, created_by
-      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-      returning
-        id, workspace_id, company_id, obligation_id, document_id,
-        title, description, status, priority,
-        due_date::text as due_date, assignee_id,
-        completed_at::text as completed_at, completed_by,
-        created_by, created_at::text as created_at, updated_at::text as updated_at`,
+      `with new_task as (
+        insert into task (
+          id, workspace_id, company_id, obligation_id, document_id,
+          title, description, priority, due_date, assignee_id, created_by
+        ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        returning
+          id, workspace_id, company_id, obligation_id, document_id,
+          title, description, status, priority,
+          due_date::text as due_date, assignee_id,
+          completed_at::text as completed_at, completed_by,
+          created_by, created_at::text as created_at, updated_at::text as updated_at
+      ), new_steps as (
+        insert into task_step (id, task_id, title, position)
+        select v.id, new_task.id, v.title, v.position
+        from new_task, unnest($12::text[], $13::text[], $14::int[]) as v(id, title, position)
+        returning 1
+      )
+      select * from new_task`,
       [
         id,
         company.workspace_id,
@@ -240,19 +257,12 @@ export const createTaskFn = createServerFn({ method: "POST" })
         input.dueDate || null,
         input.assigneeId ?? null,
         context.userId,
+        stepIds,
+        steps,
+        stepPositions,
       ],
     );
     const task = rows[0];
-
-    const steps = input.steps ?? [];
-    for (let i = 0; i < steps.length; i += 1) {
-      await sql.query(`insert into task_step (id, task_id, title, position) values ($1,$2,$3,$4)`, [
-        createId("tstep"),
-        task.id,
-        steps[i],
-        i,
-      ]);
-    }
 
     logAudit({
       workspaceId: task.workspace_id,
@@ -449,7 +459,12 @@ export const linkTaskFn = createServerFn({ method: "POST" })
       if (doc.company_id !== task.company_id) throw new Error("The document must belong to the same company");
     }
     const sql = await getSql();
-    const rows = await sql.query<Task>(
+    // Same pattern as assignTaskFn's assignee_name/email: join the display fields into the
+    // RETURNING clause itself, via subqueries on the input ids. Without this, the caller's merge
+    // of `updated` into its existing task state keeps the PREVIOUS obligation_title/document_name
+    // (those columns only come from the joined list/detail queries, never from a plain Task row),
+    // so the page kept showing the obligation it was just unlinked from until a full reload.
+    const rows = await sql.query<Task & { obligation_title: string | null; document_name: string | null }>(
       `update task set obligation_id = $2, document_id = $3, updated_at = now()
        where id = $1
        returning
@@ -457,7 +472,9 @@ export const linkTaskFn = createServerFn({ method: "POST" })
         title, description, status, priority,
         due_date::text as due_date, assignee_id,
         completed_at::text as completed_at, completed_by,
-        created_by, created_at::text as created_at, updated_at::text as updated_at`,
+        created_by, created_at::text as created_at, updated_at::text as updated_at,
+        (select title from compliance_obligation where id = $2) as obligation_title,
+        (select name from document where id = $3) as document_name`,
       [input.taskId, input.obligationId, input.documentId],
     );
     const updated = rows[0];

@@ -2,10 +2,23 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
-import { addDaysISO } from "@/lib/legal/date";
 import { createId } from "./id";
 import { requireAdmin } from "./admin";
-import type { Company } from "./types";
+import type { ApplicabilityConditions, RecurrenceConfig } from "./compliance-rule-logic";
+
+// The applicability/recurrence types and the pure functions that use them (matchesApplicability,
+// computeRuleDueDate) live in compliance-rule-logic.ts, which has no `@/`-aliased imports so it can
+// be unit tested with the plain Node test runner — see compliance-rules.test.ts. Re-exported here
+// so every existing import from "./compliance-rules" (or "@/lib/legalpak/compliance-rules") keeps
+// working unchanged.
+export {
+  matchesApplicability,
+  computeRuleDueDate,
+  type ApplicabilityConditions,
+  type RecurrenceFrequency,
+  type RecurrenceAnchor,
+  type RecurrenceConfig,
+} from "./compliance-rule-logic";
 
 /**
  * The Compliance Rule engine: structured, DB-backed configuration for "what
@@ -41,28 +54,6 @@ export const COMPLIANCE_CATEGORY_LABEL: Record<ComplianceCategory, string> = {
   other: "Other",
 };
 
-export type ApplicabilityConditions = {
-  companyType?: string[];
-  publicLinked?: boolean;
-  hasSubsidiary?: boolean;
-  minEmployees?: number;
-  minPaidUpCapital?: number;
-  minTurnover?: number;
-};
-
-export type RecurrenceFrequency = "annual" | "monthly" | "quarterly" | "once";
-export type RecurrenceAnchor = "financial_year_end" | "incorporation_date" | "agm_date" | "period_end";
-
-export type RecurrenceConfig = {
-  frequency: RecurrenceFrequency;
-  /** A company date field (annual only) or "period_end" (monthly/quarterly — end of the current month/quarter). Omit for a fixed annual calendar date. */
-  anchor?: RecurrenceAnchor;
-  offsetDays?: number;
-  /** Annual only, used when `anchor` is omitted: a fixed month/day each year. */
-  fixedMonth?: number;
-  fixedDay?: number;
-};
-
 export type ComplianceRule = {
   id: string;
   name: string;
@@ -86,90 +77,6 @@ const RULE_COLUMNS = `
   source_reference, source_verified_on::text as source_verified_on,
   created_at::text as created_at, updated_at::text as updated_at
 `;
-
-/** Whether `company` satisfies every condition in `conditions` (AND-combined). An empty/missing condition set matches every company. */
-export function matchesApplicability(conditions: ApplicabilityConditions, company: Company): boolean {
-  if (conditions.companyType && conditions.companyType.length > 0) {
-    if (!company.company_type || !conditions.companyType.includes(company.company_type)) return false;
-  }
-  if (conditions.publicLinked !== undefined && company.public_linked !== conditions.publicLinked) return false;
-  if (conditions.hasSubsidiary !== undefined && company.has_subsidiary !== conditions.hasSubsidiary) return false;
-  if (conditions.minEmployees !== undefined && (company.employees ?? 0) < conditions.minEmployees) return false;
-  if (conditions.minPaidUpCapital !== undefined && Number(company.paid_up_capital ?? 0) < conditions.minPaidUpCapital)
-    return false;
-  if (conditions.minTurnover !== undefined && Number(company.turnover ?? 0) < conditions.minTurnover) return false;
-  return true;
-}
-
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
-function periodEnd(frequency: "monthly" | "quarterly", referenceIso: string): string {
-  const year = Number(referenceIso.slice(0, 4));
-  const month = Number(referenceIso.slice(5, 7));
-  const endMonth = frequency === "monthly" ? month : Math.ceil(month / 3) * 3;
-  const lastDay = new Date(Date.UTC(year, endMonth, 0)).getUTCDate();
-  return `${year}-${pad2(endMonth)}-${pad2(lastDay)}`;
-}
-
-const ANCHOR_FIELD: Record<Exclude<RecurrenceAnchor, "period_end">, keyof Company> = {
-  financial_year_end: "financial_year_end",
-  incorporation_date: "incorporation_date",
-  agm_date: "agm_date",
-};
-
-/**
- * Computes the next due date and a dedup `periodKey` for a rule against one
- * company, as of `referenceIso` (normally today). Returns null values when
- * the recurrence can't be resolved (e.g. an annual rule anchored to an AGM
- * date the company hasn't recorded yet) — callers must not substitute a
- * guessed date.
- */
-export function computeRuleDueDate(
-  recurrence: RecurrenceConfig,
-  company: Company,
-  referenceIso: string,
-): { dueDate: string | null; periodKey: string | null } {
-  const year = Number(referenceIso.slice(0, 4));
-
-  if (recurrence.frequency === "once") {
-    if (recurrence.fixedMonth && recurrence.fixedDay) {
-      return { dueDate: `${year}-${pad2(recurrence.fixedMonth)}-${pad2(recurrence.fixedDay)}`, periodKey: "once" };
-    }
-    return { dueDate: null, periodKey: null };
-  }
-
-  if (recurrence.frequency === "annual") {
-    if (recurrence.anchor && recurrence.anchor !== "period_end") {
-      const anchorDate = company[ANCHOR_FIELD[recurrence.anchor]] as string | null;
-      if (!anchorDate) return { dueDate: null, periodKey: null };
-      // The company only records one instance of this date (e.g. the financial year end it last
-      // told us), but the obligation recurs every year on that same month/day — so re-anchor it to
-      // the reference year instead of reusing whatever year happens to be stored. Otherwise this
-      // permanently returns the original due date, and once that period has an obligation, no
-      // later year's ever gets created.
-      const thisCycleAnchor = `${year}-${anchorDate.slice(5, 10)}`;
-      const due = addDaysISO(thisCycleAnchor, recurrence.offsetDays ?? 0);
-      return { dueDate: due, periodKey: due ? due.slice(0, 4) : null };
-    }
-    if (recurrence.fixedMonth && recurrence.fixedDay) {
-      return { dueDate: `${year}-${pad2(recurrence.fixedMonth)}-${pad2(recurrence.fixedDay)}`, periodKey: String(year) };
-    }
-    return { dueDate: null, periodKey: null };
-  }
-
-  if (recurrence.frequency === "monthly" || recurrence.frequency === "quarterly") {
-    const end = periodEnd(recurrence.frequency, referenceIso);
-    const due = addDaysISO(end, recurrence.offsetDays ?? 0);
-    const month = Number(referenceIso.slice(5, 7));
-    const periodKey =
-      recurrence.frequency === "monthly" ? referenceIso.slice(0, 7) : `${year}-Q${Math.ceil(month / 3)}`;
-    return { dueDate: due, periodKey: due ? periodKey : null };
-  }
-
-  return { dueDate: null, periodKey: null };
-}
 
 /**
  * Every rule, to any signed-in user — deliberately NOT scoped by `context.userId`.

@@ -28,28 +28,52 @@ export function addDaysISO(iso: string, days: number): string | null {
 }
 
 /**
+ * Adds calendar months to `iso`, clamped to `anchorDay` (not necessarily `iso`'s own
+ * day-of-month) if the target month is too short to have that day at all. Exported
+ * separately from `addMonthsISO` below so a caller chaining this across a series of
+ * dates can pass the SAME anchor day every time instead of `iso`'s own day, which may
+ * already have been clamped down by a previous call — see `addMonthsISO`'s own comment
+ * for why that distinction matters.
+ */
+export function addMonthsFromAnchorISO(iso: string, months: number, anchorDay: number): string | null {
+  const d = parseISO(iso);
+  if (!d) return null;
+  // Move to the 1st before shifting months so setUTCMonth can't overflow into a later month by
+  // landing on a day the target month doesn't have (e.g. Jan 31 -> "Feb 31", which JS normalizes
+  // to Mar 2/3) — then clamp back to the target month's last day if it's shorter than anchorDay.
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() + months);
+  const daysInTargetMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(anchorDay, daysInTargetMonth));
+  return toISO(d);
+}
+
+/**
  * Adds calendar months to a one-time date (an incorporation date, a joining date, a fixed offset
  * from either): the same day-of-month N months later, clamped to the target month's last day only
  * when it's too short to have that day at all. Deliberately NOT "sticky" to month-end — whether a
  * date like Feb 28 was chosen because it's the 28th or because it's Feb's last day is genuinely
  * ambiguous from the value alone, and guessing "always month-end" moves one-time deadlines later
- * than intended (Feb 28 + 3 months becoming May 31 instead of May 28) and lets a manually chosen
- * recurring day silently turn into a different, month-end-anchored one after a single short-month
- * clamp. A rule-generated recurring obligation, which must never drift or land on the wrong day at
- * all, does not use this for its next due date — see spawnNextOccurrence's own comment.
+ * than intended (Feb 28 + 3 months becoming May 31 instead of May 28).
+ *
+ * Chaining this call-by-call across a *series* of dates (as opposed to a single one-time offset)
+ * silently loses the original day-of-month the first time a short month clamps it — Jan 31 + 1mo
+ * -> Feb 28, then Feb 28 + 1mo -> Mar 28 instead of Mar 31. A caller that needs to keep recurring
+ * on the same day across a chain of dates must track that day separately and use
+ * `addMonthsFromAnchorISO` instead — see spawnNextOccurrence in compliance-obligations.ts, which
+ * does exactly that for manually-recurring obligations (rule-generated ones don't chain at all;
+ * they recompute fresh from the rule each time, so this doesn't apply to them either).
  */
 export function addMonthsISO(iso: string, months: number): string | null {
   const d = parseISO(iso);
   if (!d) return null;
-  const day = d.getUTCDate();
-  // Move to the 1st before shifting months so setUTCMonth can't overflow into a later month by
-  // landing on a day the target month doesn't have (e.g. Jan 31 -> "Feb 31", which JS normalizes
-  // to Mar 2/3) — then clamp back to the target month's last day if it's shorter than the original.
-  d.setUTCDate(1);
-  d.setUTCMonth(d.getUTCMonth() + months);
-  const daysInTargetMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
-  d.setUTCDate(Math.min(day, daysInTargetMonth));
-  return toISO(d);
+  return addMonthsFromAnchorISO(iso, months, d.getUTCDate());
+}
+
+/** The day-of-month (1-31) of a calendar date string, or null if `iso` doesn't parse. */
+export function dayOfMonthISO(iso: string): number | null {
+  const d = parseISO(iso);
+  return d ? d.getUTCDate() : null;
 }
 
 export function isAfterISO(a: string, b: string): boolean {
