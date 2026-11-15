@@ -38,6 +38,7 @@ import { Pool } from "pg";
 import { ensureDbReady, getPglite } from "../db";
 import { emailAndPasswordEnabled } from "./email-password";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
+import { legacyOAuth2CallbackPath } from "./legacy-oauth2-callback";
 import { GROK_PROVIDERS } from "./providers";
 import { pgliteDialect } from "./pglite-dialect";
 import {
@@ -168,6 +169,13 @@ const grokOAuthPlugin = authConfigured
         // `prompt=select_account`, the user always gets the account chooser
         // and can pick (or switch) which account to sign in with.
         authorizationUrlParams: { idp, prompt: "login" },
+        // Better Auth 1.7 defaults PKCE on; 1.6 sent none for these providers.
+        // Keep the broker exchange byte-for-byte unchanged across the upgrade.
+        pkce: false,
+        // 1.6 keyed accounts on the userinfo `id`, falling back to `sub`; 1.7
+        // uses only `id` for non-discovery providers. Keep the 1.6 rule so
+        // existing users map to their existing account rows.
+        accountSubject: ({ profile }) => String(profile.id ?? profile.sub ?? ""),
       })),
     })
   : null;
@@ -221,6 +229,10 @@ export const auth = betterAuth({
   // Secure + the names ourselves. (Browsers allow Secure cookies on
   // `http://localhost`, so local dev still works.)
   advanced: {
+    // Dynamic baseURL (live preview): honour `x-forwarded-host` as 1.6 did by
+    // default (1.7 defaults this off). `allowedHosts` still bounds which hosts
+    // are accepted. Irrelevant when BETTER_AUTH_URL pins the baseURL.
+    ...(explicitBaseURL ? {} : { trustedProxyHeaders: true }),
     useSecureCookies: false,
     defaultCookieAttributes: { secure: true, sameSite: "lax", path: "/" },
     cookies: {
@@ -237,6 +249,13 @@ export const auth = betterAuth({
     // One genericOAuth provider per upstream (when auth is on), all federating
     // to the broker with the SAME client and differing only by the `idp` hint.
     ...(grokOAuthPlugin ? [grokOAuthPlugin] : []),
+
+    // Keep those providers' callback at `/api/auth/oauth2/callback/<id>` (the
+    // path the broker accepts) — Better Auth 1.7 moved it to `/callback/<id>`.
+    // Must come after the genericOAuth plugin above.
+    ...(grokOAuthPlugin
+      ? [legacyOAuth2CallbackPath(GROK_PROVIDERS.map((p) => p.providerId))]
+      : []),
 
     // Accept `Authorization: Bearer <session-token>` as an alternative to the
     // cookie. Needed for the LIVE PREVIEW: the app runs in an embedded iframe
